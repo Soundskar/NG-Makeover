@@ -220,7 +220,7 @@ if (form) {
     const message = data.get('message');
     if (message) lines.push(`Message: ${message}`);
 
-    const url = `https://wa.me/919999999999?text=${encodeURIComponent(lines.join('\n'))}`;
+    const url = `https://wa.me/919235112453?text=${encodeURIComponent(lines.join('\n'))}`;
     window.open(url, '_blank', 'noopener');
 
     confirmation.hidden = false;
@@ -261,7 +261,7 @@ if (heroImg && heroSection && finePointer && !reducedMotion) {
 }
 
 // ---------- WhatsApp nudge bubble (once per session) ----------
-const waHref = 'https://wa.me/919999999999?text=' + encodeURIComponent('Hi Namita, I\'d like to ask about bridal makeup.');
+const waHref = 'https://wa.me/919235112453?text=' + encodeURIComponent('Hi Namita, I\'d like to ask about bridal makeup.');
 
 if (!sessionStorage.getItem('ngm-bubble-seen')) {
   const bubble = document.createElement('div');
@@ -312,6 +312,19 @@ if (!form && !sessionStorage.getItem('ngm-bar-dismissed')) {
     sessionStorage.setItem('ngm-bar-dismissed', '1');
   });
 }
+
+// ---------- Course module accordions, one open at a time (academy only) ----------
+const courseDetails = [...document.querySelectorAll('.course-card .course-details')];
+
+courseDetails.forEach((d) => {
+  d.addEventListener('toggle', () => {
+    if (d.open) {
+      courseDetails.forEach((other) => {
+        if (other !== d) other.open = false;
+      });
+    }
+  });
+});
 
 // ---------- Footer year ----------
 const yearEl = document.getElementById('year');
