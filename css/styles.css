@@ -51,6 +51,28 @@ a { color: inherit; }
   outline-offset: 3px;
 }
 
+/* anchored sections clear the fixed header */
+#pricing, #testimonials { scroll-margin-top: 5.5rem; }
+
+/* ---------- skip link (visible on keyboard focus only) ---------- */
+.skip-link {
+  position: fixed;
+  top: -4rem;
+  left: 1.25rem;
+  z-index: 60;
+  background: var(--ink);
+  color: var(--bg);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-decoration: none;
+  border-radius: 999px;
+  padding: 0.7em 1.6em;
+  transition: top 0.25s var(--ease-out);
+}
+.skip-link:focus { top: 1.25rem; }
+
 /* ---------- eyebrow labels ---------- */
 .eyebrow {
   font-size: 0.625rem;
@@ -900,6 +922,14 @@ html.js .mf-item.reveal.in { transform: none; }
   margin-top: 1rem;
 }
 
+/* ============ NOT FOUND (404) ============ */
+.not-found {
+  min-height: 60vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
 /* ============ CONTACT LAYOUT (contact) ============ */
 .contact-layout {
   display: grid;
@@ -1093,7 +1123,9 @@ html.js .mf-item.reveal.in { transform: none; }
   border: 1px solid var(--line);
   background: var(--white);
   padding: clamp(1.75rem, 3vw, 2.25rem);
+  transition: box-shadow 0.4s ease;
 }
+.course-card:hover { box-shadow: 0 16px 44px rgba(35, 32, 25, 0.10); }
 .course-card .eyebrow { margin-bottom: 1rem; }
 .course-name {
   font-family: var(--display);
@@ -1133,6 +1165,9 @@ html.js .mf-item.reveal.in { transform: none; }
 .course-details summary:hover { padding-left: 0.4rem; }
 .course-details summary::-webkit-details-marker { display: none; }
 .cd-label { flex: 1; }
+.cd-hide { display: none; }
+.course-details[open] .cd-view { display: none; }
+.course-details[open] .cd-hide { display: inline; }
 .course-details[open] .faq-toggle::after { transform: scaleY(0); }
 .module-list {
   list-style: none;
@@ -1183,7 +1218,9 @@ html.js .mf-item.reveal.in { transform: none; }
   padding: 1.15rem 1rem 1.15rem 0;
   border-bottom: 1px solid var(--line);
   font-size: 0.8125rem;
+  transition: background 0.25s ease;
 }
+.compare-table tbody tr:hover td { background: var(--white); }
 .compare-table td:first-child {
   font-family: var(--display);
   font-weight: 400;
@@ -1327,6 +1364,11 @@ html.js .mf-item.reveal.in { transform: none; }
   color: var(--bg);
   box-shadow: 0 8px 24px rgba(35, 32, 25, 0.25);
   transition: transform 0.2s, bottom 0.35s var(--ease-out);
+}
+.whatsapp-float { animation: floatIn 0.6s var(--ease-out) 1.4s backwards; }
+@keyframes floatIn {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; }
 }
 .whatsapp-float:hover { transform: scale(1.06); }
 body.bar-show .whatsapp-float { bottom: calc(1.5rem + 58px); }

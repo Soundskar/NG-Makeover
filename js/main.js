@@ -206,6 +206,14 @@ const form = document.getElementById('enquiryForm');
 if (form) {
   const confirmation = document.getElementById('formConfirmation');
 
+  // wedding dates are in the future (local date, not UTC)
+  const dateInput = document.getElementById('weddingDate');
+  if (dateInput) {
+    const now = new Date();
+    const pad = (n) => String(n).padStart(2, '0');
+    dateInput.min = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+  }
+
   form.addEventListener('submit', (e) => {
     e.preventDefault();
 
@@ -286,13 +294,17 @@ if (!sessionStorage.getItem('ngm-bubble-seen')) {
 
 // ---------- Booking bar (all pages except the enquiry page) ----------
 if (!form && !sessionStorage.getItem('ngm-bar-dismissed')) {
+  const onAcademy = /academy/i.test(location.pathname);
   const bar = document.createElement('div');
   bar.className = 'booking-bar';
   bar.setAttribute('role', 'complementary');
-  bar.innerHTML =
-    '<p><strong>Wedding Season Fills Fast.</strong><span> Dates are first come, first served.</span></p>' +
-    '<a href="contact.html" class="bar-cta">Check Your Date</a>' +
-    '<button class="bar-close" aria-label="Dismiss">&times;</button>';
+  bar.innerHTML = onAcademy
+    ? '<p><strong>Small Batches, Limited Seats.</strong><span> The next batch fills quickly.</span></p>' +
+      '<a href="contact.html" class="bar-cta">Ask About Admissions</a>' +
+      '<button class="bar-close" aria-label="Dismiss">&times;</button>'
+    : '<p><strong>Wedding Season Fills Fast.</strong><span> Dates are first come, first served.</span></p>' +
+      '<a href="contact.html" class="bar-cta">Check Your Date</a>' +
+      '<button class="bar-close" aria-label="Dismiss">&times;</button>';
   document.body.appendChild(bar);
 
   let barShown = false;

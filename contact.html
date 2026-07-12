@@ -9,8 +9,16 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;1,9..144,300;1,9..144,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/styles.css">
+<meta name="theme-color" content="#F2EEE5">
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2064%2064'%3E%3Crect%20width='64'%20height='64'%20rx='14'%20fill='%23232019'/%3E%3Ctext%20x='32'%20y='45'%20font-family='Georgia,serif'%20font-style='italic'%20font-size='38'%20text-anchor='middle'%20fill='%23F2EEE5'%3EN%3C/text%3E%3C/svg%3E">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Namita Garg Makeover">
+<meta property="og:title" content="Enquire Now | Namita Garg Makeover, Lucknow">
+<meta property="og:description" content="Tell me your wedding date and I will get back to you on WhatsApp, usually within a few hours.">
 </head>
 <body>
+
+<a class="skip-link" href="#top">Skip To Content</a>
 
 <!-- ============ HEADER ============ -->
 <header class="site-header" id="siteHeader">
@@ -52,11 +60,11 @@
       <div class="form-stack">
         <div class="form-row">
           <label for="name">Your Name</label>
-          <input type="text" id="name" name="name" placeholder="So I know who I'm talking to" required>
+          <input type="text" id="name" name="name" placeholder="So I know who I'm talking to" autocomplete="name" required>
         </div>
         <div class="form-row">
           <label for="phone">Phone Or WhatsApp Number</label>
-          <input type="tel" id="phone" name="phone" placeholder="+91" required>
+          <input type="tel" id="phone" name="phone" placeholder="+91" autocomplete="tel" inputmode="tel" required>
         </div>
         <div class="form-row">
           <label for="weddingDate">Wedding Date <span class="opt">(if you have one)</span></label>
