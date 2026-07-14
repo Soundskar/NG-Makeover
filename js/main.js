@@ -325,6 +325,88 @@ if (!form && !sessionStorage.getItem('ngm-bar-dismissed')) {
   });
 }
 
+// ---------- Hero cursor card: mini slideshow beside the pointer (index only) ----------
+const cursorCard = document.getElementById('cursorCard');
+
+if (cursorCard && heroSection && !reducedMotion) {
+  const ccImgs = [...cursorCard.querySelectorAll('.cc-img')];
+
+  let ccIndex = 0;
+  let ccTargetX = 0, ccTargetY = 0;
+  let ccX = 0, ccY = 0;
+  let ccSwapX = 0, ccSwapY = 0;
+  let ccActive = false;
+  let ccRaf = null;
+
+  const ccTick = () => {
+    ccX += (ccTargetX - ccX) * 0.12;
+    ccY += (ccTargetY - ccY) * 0.12;
+    cursorCard.style.transform = `translate3d(${ccX.toFixed(1)}px, ${ccY.toFixed(1)}px, 0) translate(-50%, -50%)`;
+    if (ccActive || Math.abs(ccTargetX - ccX) + Math.abs(ccTargetY - ccY) > 0.5) {
+      ccRaf = requestAnimationFrame(ccTick);
+    } else {
+      ccRaf = null;
+    }
+  };
+
+  // position the target from a viewport point; hero rect is read live so
+  // the card stays glued to the finger even while the page scrolls
+  const ccAim = (clientX, clientY, offsetX, offsetY) => {
+    const r = heroSection.getBoundingClientRect();
+    ccTargetX = clientX - r.left + offsetX;
+    ccTargetY = clientY - r.top + offsetY;
+  };
+
+  const ccShow = (swapDist) => {
+    if (!ccActive) {
+      ccActive = true;
+      ccX = ccTargetX;
+      ccY = ccTargetY;
+      ccSwapX = ccTargetX;
+      ccSwapY = ccTargetY;
+      cursorCard.classList.add('show');
+    }
+    if (Math.hypot(ccTargetX - ccSwapX, ccTargetY - ccSwapY) > swapDist) {
+      ccSwapX = ccTargetX;
+      ccSwapY = ccTargetY;
+      ccImgs[ccIndex].classList.remove('is-active');
+      ccIndex = (ccIndex + 1) % ccImgs.length;
+      ccImgs[ccIndex].classList.add('is-active');
+    }
+    if (!ccRaf) ccRaf = requestAnimationFrame(ccTick);
+  };
+
+  const ccHide = () => {
+    ccActive = false;
+    cursorCard.classList.remove('show');
+  };
+
+  // desktop: card floats to the right of the mouse cursor
+  if (finePointer) {
+    heroSection.addEventListener('pointermove', (e) => {
+      if (e.pointerType !== 'mouse') return;
+      ccAim(e.clientX, e.clientY, 90, 12);
+      ccShow(150);
+    });
+    heroSection.addEventListener('pointerleave', ccHide);
+  }
+
+  // touch: card rides above the finger during drags over the hero.
+  // Listeners are passive so scrolling is never blocked; a plain tap
+  // (touchstart with no movement) primes the position but shows nothing.
+  heroSection.addEventListener('touchstart', (e) => {
+    ccAim(e.touches[0].clientX, e.touches[0].clientY, 0, -100);
+    ccX = ccTargetX;
+    ccY = ccTargetY;
+  }, { passive: true });
+  heroSection.addEventListener('touchmove', (e) => {
+    ccAim(e.touches[0].clientX, e.touches[0].clientY, 0, -100);
+    ccShow(110);
+  }, { passive: true });
+  heroSection.addEventListener('touchend', ccHide);
+  heroSection.addEventListener('touchcancel', ccHide);
+}
+
 // ---------- Course module accordions, one open at a time (academy only) ----------
 const courseDetails = [...document.querySelectorAll('.course-card .course-details')];
 
