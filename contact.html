@@ -58,21 +58,18 @@
       <span class="line"><span class="line-inner">Getting Married?</span></span>
       <span class="line"><span class="line-inner">Let's Talk.</span></span>
     </h1>
-    <p class="page-sub hero-fade">A few quick details, nothing more. Sending opens WhatsApp with your message ready, and I usually reply within a few hours.</p>
+    <p class="page-sub hero-fade">Your name, your date, your functions. Sending opens WhatsApp with your message written out, so all you do is tap send. I usually reply within a few hours.</p>
   </section>
 
   <!-- ============ CONTACT LAYOUT ============ -->
   <section class="contact-layout">
 
     <form class="enquiry-form reveal" id="enquiryForm">
+      <p class="form-context" id="formContext" hidden>Enquiring about <strong></strong><button type="button" aria-label="Remove this topic">&times;</button></p>
       <div class="form-stack">
         <div class="form-row">
           <label for="name">Your Name</label>
           <input type="text" id="name" name="name" placeholder="So I know who I'm talking to" autocomplete="name" required>
-        </div>
-        <div class="form-row">
-          <label for="phone">Phone Or WhatsApp Number</label>
-          <input type="tel" id="phone" name="phone" placeholder="+91" autocomplete="tel" inputmode="tel" required>
         </div>
         <div class="form-row">
           <label for="weddingDate">Wedding Date <span class="opt">(if you have one)</span></label>
@@ -98,6 +95,7 @@
       </div>
 
       <button type="submit" class="btn-fill btn-submit">Send on WhatsApp <span class="arrow">&rarr;</span></button>
+      <p class="form-note">No WhatsApp? Call <a href="tel:+919235112453" class="aside-link">+91 92351 12453</a> instead.</p>
 
       <p class="form-confirmation" id="formConfirmation" role="status" hidden>
         WhatsApp should now be open with your message ready. Tap send there and I will reply.

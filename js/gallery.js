@@ -7,7 +7,15 @@
   const items = window.NGM_PORTFOLIO || [];
   const WA_NUMBER = '919235112453';
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const finePointer = window.matchMedia('(pointer: fine)').matches;
   const saveData = !!(navigator.connection && navigator.connection.saveData);
+
+  // helpers from main.js, which loads after this file; only used on clicks
+  const ngm = () => window.NGM || {};
+  const notify = (msg) => { if (ngm().toast) ngm().toast(msg); };
+
+  // a link to one look that opens straight into the viewer
+  const lookUrl = (item) => new URL(`portfolio.html#look-${item.id}`, location.href).href;
 
   const slug = (s) => String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
@@ -72,21 +80,75 @@
     card.dataset.id = item.id;
     card.setAttribute('aria-label', `${item.title}${item.type === 'video' ? ', video' : ''}. Open larger view`);
 
+    const frame = make('span', 'look-frame');
     const media = make('span', 'look-media arch');
     media.appendChild(cardMedia(item, sizes));
     if (item.type === 'video') media.appendChild(make('span', 'look-badge', 'Video'));
     else if (item.before) media.appendChild(make('span', 'look-badge', 'Before / after'));
+    frame.appendChild(media);
 
     const meta = make('span', 'look-meta');
     meta.append(make('span', 'look-style', item.style), make('span', 'look-title', item.title));
 
-    card.append(media, meta);
+    card.append(frame, meta);
+    card.dataset.cursor = item.type === 'video' ? 'Play' : (item.before ? 'Compare' : 'View');
     card.addEventListener('click', () => {
       if (card.dataset.dragged) return;
       const list = getList();
       openViewer(list, Math.max(0, list.indexOf(item)));
     });
     return card;
+  };
+
+  // ============ SHORTLIST ============
+  // Brides decide with family, so looks can be saved and sent to Namita
+  // in one message. Saved ids live in this browser only.
+  const SHORTLIST_KEY = 'ngm-shortlist';
+  const shortlist = new Set((() => {
+    try { return JSON.parse(window.localStorage.getItem(SHORTLIST_KEY)) || []; } catch (e) { return []; }
+  })().filter((id) => items.some((it) => it.id === id)));
+
+  const saveShortlist = () => {
+    try { window.localStorage.setItem(SHORTLIST_KEY, JSON.stringify([...shortlist])); } catch (e) { /* storage blocked */ }
+  };
+
+  const HEART = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20.5s-7.5-4.6-9.3-9.2C1.4 7.9 3.6 4.5 7 4.5c2 0 3.6 1.1 5 3 1.4-1.9 3-3 5-3 3.4 0 5.6 3.4 4.3 6.8-1.8 4.6-9.3 9.2-9.3 9.2z"/></svg>';
+
+  let pill = null;
+  const shortlistMessage = () => {
+    const saved = items.filter((it) => shortlist.has(it.id));
+    return [
+      'Hi Namita, I shortlisted these looks on your website:',
+      ...saved.map((it) => `• ${it.title}: ${lookUrl(it)}`),
+      'Is my date free?'
+    ].join('\n');
+  };
+
+  const renderPill = (bump) => {
+    // only on pages that show looks
+    if (!document.querySelector('#looksStrip, #portfolioGrid')) return;
+    if (!pill) {
+      pill = make('a', 'shortlist-pill');
+      pill.target = '_blank';
+      pill.rel = 'noopener';
+      pill.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (ngm().openWhatsApp) ngm().openWhatsApp(pill.href);
+        else window.open(pill.href, '_blank', 'noopener');
+      });
+      document.body.appendChild(pill);
+    }
+    const n = shortlist.size;
+    pill.innerHTML = `${HEART}<span>${n} saved &middot; Send to Namita</span>`;
+    pill.href = `https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(shortlistMessage())}`;
+    pill.setAttribute('aria-label', `Send my ${n} saved look${n === 1 ? '' : 's'} to Namita on WhatsApp`);
+    pill.classList.toggle('show', n > 0);
+    pill.tabIndex = n > 0 ? 0 : -1;
+    if (bump) {
+      pill.classList.remove('bump');
+      void pill.offsetWidth;
+      pill.classList.add('bump');
+    }
   };
 
   // ============ LOOK VIEWER ============
@@ -96,7 +158,7 @@
   const ui = {};
 
   const waLink = (item) => `https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(
-    `Hi Namita, I loved the "${item.title}" look on your website. Is my date free?`
+    `Hi Namita, I loved the "${item.title}" look on your website (${lookUrl(item)}). Is my date free?`
   )}`;
 
   const compareSlider = (item) => {
@@ -144,9 +206,18 @@
     return img;
   };
 
-  const showLook = (i) => {
+  const updateSaveButton = (item) => {
+    const saved = shortlist.has(item.id);
+    ui.save.setAttribute('aria-pressed', String(saved));
+    ui.saveLabel.textContent = saved ? 'Saved' : 'Save';
+  };
+
+  // dir: 'next' or 'prev' slides the new look in from that side
+  const showLook = (i, dir) => {
     viewIndex = (i + viewList.length) % viewList.length;
     const item = viewList[viewIndex];
+    if (dir) ui.stage.dataset.dir = dir;
+    else delete ui.stage.dataset.dir;
     ui.stage.replaceChildren(viewerMedia(item));
     ui.count.textContent = `${viewIndex + 1} / ${viewList.length}`;
     ui.style.textContent = item.style;
@@ -154,9 +225,16 @@
     ui.details.textContent = item.details || '';
     ui.details.hidden = !item.details;
     ui.book.href = waLink(item);
+    updateSaveButton(item);
     const single = viewList.length < 2;
     ui.prev.hidden = single;
     ui.next.hidden = single;
+
+    // re-run the caption entrance for the new look
+    ui.info.classList.remove('swap');
+    void ui.info.offsetWidth;
+    ui.info.classList.add('swap');
+    fitStage(); // a details line can change the panel's height
 
     // warm up the neighbours so paging feels instant
     [viewIndex - 1, viewIndex + 1].forEach((n) => {
@@ -177,6 +255,10 @@
         <h2 class="lb-title"></h2>
         <p class="lb-details"></p>
         <a class="btn-fill lb-book" target="_blank" rel="noopener">Book this look <span class="arrow">&rarr;</span></a>
+        <div class="lb-actions">
+          <button class="lb-chip lb-save" type="button" aria-pressed="false">${HEART}<span>Save</span></button>
+          <button class="lb-chip lb-share" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V3m0 0L7.5 7.5M12 3l4.5 4.5M5 12v7.5h14V12"/></svg><span>Share</span></button>
+        </div>
       </div>
       <button class="lb-nav lb-prev" type="button" aria-label="Previous look"><span aria-hidden="true">&larr;</span></button>
       <button class="lb-nav lb-next" type="button" aria-label="Next look"><span aria-hidden="true">&rarr;</span></button>
@@ -184,22 +266,63 @@
     document.body.appendChild(viewer);
 
     ui.stage = viewer.querySelector('.lb-stage');
+    ui.info = viewer.querySelector('.lb-info');
     ui.count = viewer.querySelector('.lb-count');
     ui.style = viewer.querySelector('.lb-style');
     ui.title = viewer.querySelector('.lb-title');
     ui.details = viewer.querySelector('.lb-details');
     ui.book = viewer.querySelector('.lb-book');
+    ui.save = viewer.querySelector('.lb-save');
+    ui.saveLabel = ui.save.querySelector('span');
     ui.prev = viewer.querySelector('.lb-prev');
     ui.next = viewer.querySelector('.lb-next');
 
-    ui.prev.addEventListener('click', () => showLook(viewIndex - 1));
-    ui.next.addEventListener('click', () => showLook(viewIndex + 1));
+    ui.prev.addEventListener('click', () => showLook(viewIndex - 1, 'prev'));
+    ui.next.addEventListener('click', () => showLook(viewIndex + 1, 'next'));
     viewer.querySelector('.lb-close').addEventListener('click', () => viewer.close());
+
+    // the booking link goes through main.js so in-app browsers still reach WhatsApp
+    ui.book.addEventListener('click', (e) => {
+      if (!ngm().openWhatsApp) return;
+      e.preventDefault();
+      ngm().openWhatsApp(ui.book.href);
+    });
+
+    ui.save.addEventListener('click', () => {
+      const item = viewList[viewIndex];
+      if (shortlist.has(item.id)) {
+        shortlist.delete(item.id);
+        notify('Removed from your shortlist');
+      } else {
+        shortlist.add(item.id);
+        notify(shortlist.size === 1 ? 'Saved. Send your shortlist to Namita when you are ready.' : 'Saved to your shortlist');
+      }
+      saveShortlist();
+      updateSaveButton(item);
+      renderPill(true);
+    });
+
+    viewer.querySelector('.lb-share').addEventListener('click', async () => {
+      const item = viewList[viewIndex];
+      const url = lookUrl(item);
+      if (navigator.share) {
+        try {
+          await navigator.share({ title: `${item.title} | Namita Garg Makeover`, text: `Look at this one: ${item.title}`, url });
+        } catch (e) { /* closed the share sheet */ }
+        return;
+      }
+      try {
+        await navigator.clipboard.writeText(url);
+        notify('Link copied. Paste it to share this look.');
+      } catch (e) {
+        window.prompt('Copy this link to share the look:', url);
+      }
+    });
 
     viewer.addEventListener('keydown', (e) => {
       if (e.target.matches && e.target.matches('input[type="range"]')) return;
-      if (e.key === 'ArrowLeft') showLook(viewIndex - 1);
-      if (e.key === 'ArrowRight') showLook(viewIndex + 1);
+      if (e.key === 'ArrowLeft') showLook(viewIndex - 1, 'prev');
+      if (e.key === 'ArrowRight') showLook(viewIndex + 1, 'next');
     });
 
     // a click on the dark backdrop (outside the photo and the panel) closes
@@ -220,7 +343,10 @@
       const dx = e.clientX - startX;
       const dy = e.clientY - startY;
       startX = null;
-      if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)) showLook(viewIndex + (dx < 0 ? 1 : -1));
+      if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)) {
+        if (dx < 0) showLook(viewIndex + 1, 'next');
+        else showLook(viewIndex - 1, 'prev');
+      }
     });
 
     viewer.addEventListener('close', () => {
@@ -228,6 +354,15 @@
       document.documentElement.classList.remove('lb-open');
     });
   };
+
+  // the space left for the photo once the info panel has taken its share
+  const fitStage = () => {
+    if (!viewer || !viewer.open) return;
+    const cs = getComputedStyle(ui.stage);
+    const room = ui.stage.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+    ui.stage.style.setProperty('--stage-max', `${Math.max(160, Math.floor(room))}px`);
+  };
+  window.addEventListener('resize', fitStage);
 
   function openViewer(list, index) {
     if (!list.length) return;
@@ -237,7 +372,54 @@
     document.documentElement.classList.add('lb-open');
     if (typeof viewer.showModal === 'function') viewer.showModal();
     else viewer.setAttribute('open', '');
+    fitStage();
   }
+
+  // ============ "VIEW" CURSOR over look cards (mouse only) ============
+  if (finePointer && !reducedMotion) {
+    const cursor = make('div', 'view-cursor');
+    cursor.setAttribute('aria-hidden', 'true');
+    const label = make('span', null, 'View');
+    cursor.appendChild(label);
+    document.body.appendChild(cursor);
+
+    let x = 0;
+    let y = 0;
+    let cx = 0;
+    let cy = 0;
+    let raf = null;
+    let on = false;
+
+    const tick = () => {
+      cx += (x - cx) * 0.22;
+      cy += (y - cy) * 0.22;
+      cursor.style.transform = `translate3d(${cx.toFixed(1)}px, ${cy.toFixed(1)}px, 0)`;
+      raf = on || Math.abs(x - cx) + Math.abs(y - cy) > 0.5 ? requestAnimationFrame(tick) : null;
+    };
+
+    document.addEventListener('pointermove', (e) => {
+      if (e.pointerType !== 'mouse') return;
+      x = e.clientX;
+      y = e.clientY;
+      const card = e.target.closest && e.target.closest('.look-card');
+      const dragging = card && card.closest('.strip.is-dragging');
+      const show = !!card && !dragging;
+      if (show && !on) {
+        cx = x;
+        cy = y;
+      }
+      if (card) label.textContent = card.dataset.cursor || 'View';
+      on = show;
+      cursor.classList.toggle('is-on', show);
+      if (!raf) raf = requestAnimationFrame(tick);
+    }, { passive: true });
+    document.addEventListener('pointerleave', () => {
+      on = false;
+      cursor.classList.remove('is-on');
+    });
+  }
+
+  renderPill(false);
 
   // ============ HERO SLIDESHOW (home) ============
   const heroArch = document.getElementById('heroArch');
@@ -267,6 +449,9 @@
     });
     if (ordered.length < 2) dotsWrap.hidden = true;
 
+    const SLIDE_MS = 5200;
+    dotsWrap.style.setProperty('--slide-ms', `${SLIDE_MS}ms`);
+
     function goTo(n) {
       if (!slides[n] || n === current) return;
       slides[current].classList.remove('is-active');
@@ -275,14 +460,22 @@
       slides[current].classList.add('is-active');
       dots[current].classList.add('is-active');
       captionText.textContent = ordered[current].title;
+      captionText.classList.remove('swap');
+      void captionText.offsetWidth;
+      captionText.classList.add('swap');
     }
 
+    // the active dot fills over SLIDE_MS (CSS), so it shows when the next
+    // look is coming; .is-running starts that fill in step with the timer
     function restart() {
       clearInterval(timer);
+      dotsWrap.classList.remove('is-running');
       if (reducedMotion || slides.length < 2) return;
+      void dotsWrap.offsetWidth;
+      dotsWrap.classList.add('is-running');
       timer = setInterval(() => {
         if (!document.hidden) goTo((current + 1) % slides.length);
-      }, 5200);
+      }, SLIDE_MS);
     }
 
     // the first slide is in the HTML for a fast first paint; the rest
@@ -319,11 +512,36 @@
       const card = strip.querySelector('.look-card');
       return card ? card.getBoundingClientRect().width + 20 : 300;
     };
-    document.querySelectorAll('[data-strip-dir]').forEach((btn) => {
+    const arrowBtns = [...document.querySelectorAll('[data-strip-dir]')];
+    arrowBtns.forEach((btn) => {
       btn.addEventListener('click', () => {
         strip.scrollBy({ left: step() * Number(btn.dataset.stripDir), behavior: reducedMotion ? 'auto' : 'smooth' });
       });
     });
+
+    // progress line under the strip, and arrows that rest at either end
+    const progress = document.querySelector('.strip-progress span');
+    let stripTicking = false;
+    const updateStrip = () => {
+      stripTicking = false;
+      const max = strip.scrollWidth - strip.clientWidth;
+      if (progress) {
+        progress.style.setProperty('--thumb', `${Math.min(100, (strip.clientWidth / strip.scrollWidth) * 100).toFixed(2)}%`);
+        progress.style.setProperty('--offset', `${((strip.scrollLeft / strip.clientWidth) * 100).toFixed(2)}%`);
+      }
+      arrowBtns.forEach((btn) => {
+        const back = Number(btn.dataset.stripDir) < 0;
+        btn.disabled = back ? strip.scrollLeft <= 2 : strip.scrollLeft >= max - 2;
+      });
+    };
+    strip.addEventListener('scroll', () => {
+      if (!stripTicking) {
+        stripTicking = true;
+        requestAnimationFrame(updateStrip);
+      }
+    }, { passive: true });
+    window.addEventListener('resize', updateStrip);
+    updateStrip();
 
     // drag to scroll with a mouse; a drag never counts as a click
     let downX = null;
@@ -397,16 +615,23 @@
     function apply(filter, fromClick) {
       active = filter;
       chips.forEach((c) => c.setAttribute('aria-pressed', String(c.dataset.key === filter.key)));
-      let shown = 0;
+      const entering = [];
       items.forEach((it) => {
         const show = filter.test(it);
         const card = cards.get(it);
         card.hidden = !show;
-        if (show) shown += 1;
-        // cards revealed by a filter skip the scroll fade-in
-        if (show && fromClick) card.classList.add('in');
+        if (show && fromClick) {
+          // replay the fade-up, staggered, so the new set arrives together
+          card.classList.remove('in');
+          card.style.setProperty('--reveal-delay', `${Math.min(entering.length, 8) * 0.05}s`);
+          entering.push(card);
+        }
       });
-      if (emptyNote) emptyNote.hidden = shown > 0;
+      if (entering.length) {
+        void grid.offsetWidth;
+        entering.forEach((card) => card.classList.add('in'));
+      }
+      if (emptyNote) emptyNote.hidden = items.some(filter.test);
       if (fromClick) {
         history.replaceState(null, '', filter.key === 'all' ? location.pathname + location.search : `#${filter.key}`);
       }

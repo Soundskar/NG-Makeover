@@ -16,6 +16,77 @@ const store = {
   }
 };
 
+// ---------- Shared helpers (also used by gallery.js via window.NGM) ----------
+const WA_NUMBER = '919235112453';
+
+const waUrl = (text) => `https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(text)}`;
+
+// Some in-app browsers (Instagram, Facebook) block new windows; fall back
+// to opening WhatsApp in this tab so the enquiry is never lost.
+const openWhatsApp = (url) => {
+  const win = window.open(url, '_blank');
+  if (win) win.opener = null;
+  else window.location.href = url;
+};
+
+const prettyDate = (iso) => {
+  const d = new Date(`${iso}T00:00:00`);
+  return Number.isNaN(d.getTime())
+    ? iso
+    : d.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
+};
+
+const todayIso = () => {
+  const now = new Date();
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+};
+
+// A short confirmation at the bottom of the screen. Inside the look viewer
+// it has to live in the open dialog, which sits above everything else.
+let toastTimer = null;
+const toast = (message) => {
+  const host = document.querySelector('dialog[open]') || document.body;
+  let el = document.querySelector('.toast');
+  if (!el) {
+    el = document.createElement('div');
+    el.className = 'toast';
+    el.setAttribute('role', 'status');
+    el.setAttribute('aria-live', 'polite');
+  }
+  if (el.parentNode !== host) host.appendChild(el);
+  el.textContent = message;
+  requestAnimationFrame(() => el.classList.add('show'));
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2600);
+};
+
+// Brief "done" state on a button after it hands off to WhatsApp
+const flashButton = (btn, label) => {
+  if (!btn || btn.dataset.busy) return;
+  btn.dataset.busy = '1';
+  const original = btn.innerHTML;
+  btn.textContent = label;
+  btn.classList.add('is-done');
+  setTimeout(() => {
+    btn.innerHTML = original;
+    btn.classList.remove('is-done');
+    delete btn.dataset.busy;
+  }, 2200);
+};
+
+window.NGM = { waUrl, openWhatsApp, toast, prettyDate };
+
+// Page cross-fades (CSS @view-transition) are skipped when a tab is hidden
+// or a navigation is interrupted; that rejection is expected, not an error.
+['pageswap', 'pagereveal'].forEach((type) => {
+  window.addEventListener(type, (e) => {
+    const vt = e.viewTransition;
+    if (!vt) return;
+    [vt.ready, vt.finished, vt.updateCallbackDone].forEach((p) => p && p.catch(() => {}));
+  });
+});
+
 // ---------- Intro veil: velvet curtain with the name, then lift ----------
 if (!reducedMotion && !store.get('ngm-intro-done')) {
   document.documentElement.classList.add('with-intro');
@@ -51,22 +122,35 @@ if (!reducedMotion && !store.get('ngm-intro-done')) {
 
 // ---------- Sticky header + scroll progress ----------
 const header = document.getElementById('siteHeader');
+const navToggle = document.getElementById('navToggle');
+const mainNav = document.getElementById('mainNav');
 
 const progressBar = document.createElement('div');
 progressBar.className = 'scroll-progress';
 document.body.appendChild(progressBar);
 
+// the header tucks away while reading down the page and comes back as
+// soon as the visitor scrolls up, where they usually look for the menu
+let lastScrollY = window.scrollY;
+
 const onScroll = () => {
-  header.classList.toggle('scrolled', window.scrollY > 40);
+  const y = window.scrollY;
+  header.classList.toggle('scrolled', y > 40);
+  if (mainNav.classList.contains('open') || y < 480) {
+    header.classList.remove('tucked');
+  } else if (y > lastScrollY + 6) {
+    header.classList.add('tucked');
+  } else if (y < lastScrollY - 6) {
+    header.classList.remove('tucked');
+  }
+  lastScrollY = y;
   const max = document.documentElement.scrollHeight - window.innerHeight;
-  progressBar.style.transform = `scaleX(${max > 0 ? window.scrollY / max : 0})`;
+  progressBar.style.transform = `scaleX(${max > 0 ? y / max : 0})`;
 };
 window.addEventListener('scroll', onScroll, { passive: true });
 onScroll();
 
 // ---------- Mobile nav ----------
-const navToggle = document.getElementById('navToggle');
-const mainNav = document.getElementById('mainNav');
 
 const setMenu = (open) => {
   mainNav.classList.toggle('open', open);
@@ -240,31 +324,31 @@ const form = document.getElementById('enquiryForm');
 if (form) {
   const confirmation = document.getElementById('formConfirmation');
   const fallbackLink = document.getElementById('formFallback');
+  const submitBtn = form.querySelector('button[type="submit"]');
 
   // wedding dates are in the future (local date, not UTC)
   const dateInput = document.getElementById('weddingDate');
-  if (dateInput) {
-    const now = new Date();
-    const pad = (n) => String(n).padStart(2, '0');
-    dateInput.min = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
-  }
+  if (dateInput) dateInput.min = todayIso();
 
-  const prettyDate = (iso) => {
-    const d = new Date(`${iso}T00:00:00`);
-    return Number.isNaN(d.getTime())
-      ? iso
-      : d.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
-  };
+  // arriving from a service ("contact.html?for=Bridal makeup") keeps that
+  // context visible and adds it to the message
+  const context = document.getElementById('formContext');
+  let interest = (new URLSearchParams(location.search).get('for') || '').trim().slice(0, 60);
+  if (context && interest) {
+    context.querySelector('strong').textContent = interest;
+    context.hidden = false;
+    context.querySelector('button').addEventListener('click', () => {
+      interest = '';
+      context.hidden = true;
+    });
+  }
 
   form.addEventListener('submit', (e) => {
     e.preventDefault();
 
     const data = new FormData(form);
-    const lines = [
-      'Hi Namita, I\'d like to enquire about makeup.',
-      `Name: ${data.get('name')}`,
-      `Phone: ${data.get('phone')}`
-    ];
+    const lines = [`Hi Namita, I'm ${data.get('name')}. I'd like to enquire about makeup.`];
+    if (interest) lines.push(`Interested in: ${interest}`);
     const date = data.get('weddingDate');
     if (date) lines.push(`Wedding date: ${prettyDate(date)}`);
     const functions = data.getAll('functions');
@@ -272,30 +356,65 @@ if (form) {
     const message = data.get('message');
     if (message) lines.push(`Message: ${message}`);
 
-    const url = `https://wa.me/919235112453?text=${encodeURIComponent(lines.join('\n'))}`;
+    const url = waUrl(lines.join('\n'));
+    openWhatsApp(url);
 
-    // Some in-app browsers (Instagram, Facebook) block new windows; fall
-    // back to opening WhatsApp in this tab so the enquiry is never lost.
-    const win = window.open(url, '_blank');
-    if (win) win.opener = null;
-    else window.location.href = url;
-
+    flashButton(submitBtn, 'Opening WhatsApp…');
     if (fallbackLink) fallbackLink.href = url;
     confirmation.hidden = false;
   });
 }
 
+// ---------- Date checker: pick a date, ask on WhatsApp (CTA bands) ----------
+document.querySelectorAll('.date-check').forEach((dc) => {
+  const input = dc.querySelector('input[type="date"]');
+  const btn = dc.querySelector('button[type="submit"]');
+  const what = dc.dataset.service || 'bridal makeup';
+  input.min = todayIso();
+
+  dc.addEventListener('submit', (e) => {
+    e.preventDefault();
+    openWhatsApp(waUrl(`Hi Namita, is ${prettyDate(input.value)} free for ${what}?`));
+    flashButton(btn, 'Opening WhatsApp…');
+  });
+});
+
+// ---------- Phone numbers: copy on desktop, where tel: links rarely work ----------
+if (finePointer && navigator.clipboard) {
+  document.querySelectorAll('a[href^="tel:"]').forEach((link) => {
+    link.addEventListener('click', (e) => {
+      e.preventDefault();
+      const number = link.textContent.trim();
+      navigator.clipboard.writeText(number).then(
+        () => toast(`Number copied: ${number}`),
+        () => { window.location.href = link.href; }
+      );
+    });
+  });
+}
+
+// ---------- WhatsApp button label (shown on hover on desktop) ----------
+const waFloat = document.querySelector('.whatsapp-float');
+if (waFloat) {
+  const label = document.createElement('span');
+  label.className = 'wa-label';
+  label.setAttribute('aria-hidden', 'true');
+  label.textContent = 'Chat on WhatsApp';
+  waFloat.appendChild(label);
+}
+
 // ---------- Magnetic buttons (fine pointers only) ----------
+// Writes --tx/--ty; the CSS transform also carries the :active press
 if (finePointer && !reducedMotion) {
   document.querySelectorAll('.btn-fill, .btn-outline, .header-cta').forEach((btn) => {
     btn.addEventListener('mousemove', (e) => {
       const r = btn.getBoundingClientRect();
-      const dx = (e.clientX - (r.left + r.width / 2)) * 0.16;
-      const dy = (e.clientY - (r.top + r.height / 2)) * 0.3;
-      btn.style.transform = `translate(${dx.toFixed(1)}px, ${dy.toFixed(1)}px)`;
+      btn.style.setProperty('--tx', `${((e.clientX - (r.left + r.width / 2)) * 0.16).toFixed(1)}px`);
+      btn.style.setProperty('--ty', `${((e.clientY - (r.top + r.height / 2)) * 0.3).toFixed(1)}px`);
     });
     btn.addEventListener('mouseleave', () => {
-      btn.style.transform = '';
+      btn.style.removeProperty('--tx');
+      btn.style.removeProperty('--ty');
     });
   });
 }
@@ -316,7 +435,7 @@ if (heroMedia && heroSection && finePointer && !reducedMotion) {
 }
 
 // ---------- WhatsApp nudge bubble (once per session) ----------
-const waHref = 'https://wa.me/919235112453?text=' + encodeURIComponent('Hi Namita, I\'d like to ask about bridal makeup.');
+const waHref = waUrl('Hi Namita, I\'d like to ask about bridal makeup.');
 
 if (!store.get('ngm-bubble-seen')) {
   const bubble = document.createElement('div');
@@ -348,7 +467,7 @@ if (!form && !store.get('ngm-bar-dismissed')) {
   bar.setAttribute('aria-label', 'Booking reminder');
   bar.innerHTML = onAcademy
     ? '<p><strong>Small batches, limited seats.</strong><span> The next batch fills quickly.</span></p>' +
-      '<a href="contact.html" class="bar-cta">Ask about admissions</a>' +
+      '<a href="contact.html?for=Academy%20admissions" class="bar-cta">Ask about admissions</a>' +
       '<button class="bar-close" type="button" aria-label="Dismiss">&times;</button>'
     : '<p><strong>Wedding season fills fast.</strong><span> Dates are first come, first served.</span></p>' +
       '<a href="contact.html" class="bar-cta">Check your date</a>' +
@@ -448,7 +567,8 @@ if (cursorCard && heroSection && !reducedMotion) {
   if (finePointer) {
     heroSection.addEventListener('pointermove', (e) => {
       if (e.pointerType !== 'mouse') return;
-      if (arch && arch.contains(e.target)) {
+      // step aside over the photo and over anything clickable
+      if ((arch && arch.contains(e.target)) || e.target.closest('a, button')) {
         ccHide();
         return;
       }
