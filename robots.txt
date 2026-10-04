@@ -1,2 +1,4 @@
 User-agent: *
 Allow: /
+
+Sitemap: https://namita-garg-makeover.vercel.app/sitemap.xml

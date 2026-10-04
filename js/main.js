@@ -3,9 +3,21 @@
 document.documentElement.classList.add('js');
 
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const finePointer = window.matchMedia('(pointer: fine)').matches;
 
-// ---------- Intro veil: letter-by-letter name, then curtain lift ----------
-if (!reducedMotion && !sessionStorage.getItem('ngm-intro-done')) {
+// sessionStorage throws when the browser blocks site storage; without this
+// guard one throw stops the script and every .reveal section stays hidden
+const store = {
+  get(key) {
+    try { return window.sessionStorage.getItem(key); } catch (e) { return null; }
+  },
+  set(key, value) {
+    try { window.sessionStorage.setItem(key, value); } catch (e) { /* storage blocked */ }
+  }
+};
+
+// ---------- Intro veil: velvet curtain with the name, then lift ----------
+if (!reducedMotion && !store.get('ngm-intro-done')) {
   document.documentElement.classList.add('with-intro');
 
   const veil = document.createElement('div');
@@ -16,20 +28,20 @@ if (!reducedMotion && !sessionStorage.getItem('ngm-intro-done')) {
   'Namita Garg'.split('').forEach((ch, i) => {
     const s = document.createElement('span');
     s.textContent = ch === ' ' ? String.fromCharCode(160) : ch;
-    s.style.animationDelay = `${0.15 + i * 0.055}s`;
+    s.style.animationDelay = `${0.1 + i * 0.04}s`;
     name.appendChild(s);
   });
   veil.appendChild(name);
   document.body.appendChild(veil);
 
   const finishIntro = () => {
-    if (!veil.parentNode) return;
+    if (veil.classList.contains('lift')) return;
     veil.classList.add('lift');
-    sessionStorage.setItem('ngm-intro-done', '1');
-    setTimeout(() => veil.remove(), 1000);
+    store.set('ngm-intro-done', '1');
+    setTimeout(() => veil.remove(), 900);
   };
 
-  setTimeout(finishIntro, 1400);
+  setTimeout(finishIntro, 950);
   // a click skips straight to the page
   veil.addEventListener('click', () => {
     document.documentElement.style.setProperty('--intro-delay', '0s');
@@ -56,17 +68,23 @@ onScroll();
 const navToggle = document.getElementById('navToggle');
 const mainNav = document.getElementById('mainNav');
 
-navToggle.addEventListener('click', () => {
-  const open = mainNav.classList.toggle('open');
+const setMenu = (open) => {
+  mainNav.classList.toggle('open', open);
   header.classList.toggle('menu-open', open);
   navToggle.setAttribute('aria-expanded', String(open));
-});
+  navToggle.setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
+};
+
+navToggle.addEventListener('click', () => setMenu(!mainNav.classList.contains('open')));
 
 mainNav.addEventListener('click', (e) => {
-  if (e.target.tagName === 'A') {
-    mainNav.classList.remove('open');
-    header.classList.remove('menu-open');
-    navToggle.setAttribute('aria-expanded', 'false');
+  if (e.target.closest('a')) setMenu(false);
+});
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && mainNav.classList.contains('open')) {
+    setMenu(false);
+    navToggle.focus();
   }
 });
 
@@ -76,10 +94,10 @@ const reveals = document.querySelectorAll('.reveal');
 if (reducedMotion || !('IntersectionObserver' in window)) {
   reveals.forEach((el) => el.classList.add('in'));
 } else {
-  // Stagger siblings inside a .reveal-group
+  // Stagger siblings inside a .reveal-group, a row at a time
   document.querySelectorAll('.reveal-group').forEach((group) => {
     group.querySelectorAll('.reveal').forEach((el, i) => {
-      el.style.setProperty('--reveal-delay', `${i * 0.09}s`);
+      el.style.setProperty('--reveal-delay', `${(i % 4) * 0.09}s`);
     });
   });
 
@@ -96,6 +114,8 @@ if (reducedMotion || !('IntersectionObserver' in window)) {
 }
 
 // ---------- Soft parallax ----------
+// Writes --py only; the element's CSS transform combines it with the
+// hero mouse drift (--mx/--my) so the two effects never overwrite each other
 const parallaxEls = [...document.querySelectorAll('[data-parallax]')];
 
 if (!reducedMotion && parallaxEls.length) {
@@ -108,9 +128,7 @@ if (!reducedMotion && parallaxEls.length) {
       const rect = el.getBoundingClientRect();
       if (rect.bottom < 0 || rect.top > vh) return;
       const progress = (rect.top + rect.height / 2 - vh / 2) / vh;
-      const shift = -progress * speed * 100;
-      // scale slightly so edges never show while translating
-      el.style.transform = `scale(1.06) translateY(${shift.toFixed(2)}px)`;
+      el.style.setProperty('--py', `${(-progress * speed * 100).toFixed(2)}px`);
     });
     ticking = false;
   };
@@ -131,6 +149,19 @@ if (marqueeTrack && !reducedMotion && 'getAnimations' in marqueeTrack) {
   let marqueeAnim = null;
   const getAnim = () => marqueeAnim || (marqueeAnim = marqueeTrack.getAnimations()[0] || null);
   let lastMarqueeY = window.scrollY;
+  let easing = null;
+
+  // ease back to normal speed, and stop ticking once it is there
+  const easeBack = () => {
+    const a = getAnim();
+    if (a && a.playbackRate > 1.01) {
+      a.playbackRate = Math.max(1, a.playbackRate * 0.92);
+      easing = setTimeout(easeBack, 120);
+    } else {
+      if (a) a.playbackRate = 1;
+      easing = null;
+    }
+  };
 
   window.addEventListener('scroll', () => {
     const a = getAnim();
@@ -138,19 +169,12 @@ if (marqueeTrack && !reducedMotion && 'getAnimations' in marqueeTrack) {
     const dy = Math.abs(window.scrollY - lastMarqueeY);
     lastMarqueeY = window.scrollY;
     a.playbackRate = Math.min(1 + dy / 40, 4);
+    if (!easing) easing = setTimeout(easeBack, 120);
   }, { passive: true });
-
-  // ease back to normal speed
-  setInterval(() => {
-    const a = getAnim();
-    if (a && a.playbackRate > 1) {
-      a.playbackRate = Math.max(1, a.playbackRate * 0.92);
-    }
-  }, 120);
 }
 
 // ---------- Pointer tilt on service images ----------
-if (window.matchMedia('(pointer: fine)').matches && !reducedMotion) {
+if (finePointer && !reducedMotion) {
   document.querySelectorAll('.svc-media .ph').forEach((el) => {
     el.addEventListener('pointermove', (e) => {
       const r = el.getBoundingClientRect();
@@ -164,7 +188,7 @@ if (window.matchMedia('(pointer: fine)').matches && !reducedMotion) {
   });
 }
 
-// ---------- Testimonial pager (index only) ----------
+// ---------- Testimonials (index only) ----------
 const tSection = document.getElementById('testimonials');
 
 if (tSection) {
@@ -175,16 +199,20 @@ if (tSection) {
 
   const showSlide = (i) => {
     tIndex = i;
-    slides.forEach((s, n) => s.classList.toggle('is-active', n === i));
+    slides.forEach((s, n) => {
+      s.classList.toggle('is-active', n === i);
+      s.setAttribute('aria-hidden', String(n !== i));
+    });
     pagerBtns.forEach((b, n) => {
       b.classList.toggle('is-active', n === i);
-      b.setAttribute('aria-selected', String(n === i));
+      b.setAttribute('aria-pressed', String(n === i));
     });
   };
 
+  const stopAuto = () => clearInterval(tTimer);
   const startAuto = () => {
     if (reducedMotion) return;
-    clearInterval(tTimer);
+    stopAuto();
     tTimer = setInterval(() => showSlide((tIndex + 1) % slides.length), 6500);
   };
 
@@ -195,8 +223,14 @@ if (tSection) {
     });
   });
 
-  tSection.addEventListener('mouseenter', () => clearInterval(tTimer));
+  // pause while someone is reading with the mouse or keyboard
+  tSection.addEventListener('mouseenter', stopAuto);
   tSection.addEventListener('mouseleave', startAuto);
+  tSection.addEventListener('focusin', stopAuto);
+  tSection.addEventListener('focusout', (e) => {
+    if (!tSection.contains(e.relatedTarget)) startAuto();
+  });
+  showSlide(0);
   startAuto();
 }
 
@@ -205,6 +239,7 @@ const form = document.getElementById('enquiryForm');
 
 if (form) {
   const confirmation = document.getElementById('formConfirmation');
+  const fallbackLink = document.getElementById('formFallback');
 
   // wedding dates are in the future (local date, not UTC)
   const dateInput = document.getElementById('weddingDate');
@@ -213,6 +248,13 @@ if (form) {
     const pad = (n) => String(n).padStart(2, '0');
     dateInput.min = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
   }
+
+  const prettyDate = (iso) => {
+    const d = new Date(`${iso}T00:00:00`);
+    return Number.isNaN(d.getTime())
+      ? iso
+      : d.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
+  };
 
   form.addEventListener('submit', (e) => {
     e.preventDefault();
@@ -224,21 +266,26 @@ if (form) {
       `Phone: ${data.get('phone')}`
     ];
     const date = data.get('weddingDate');
-    if (date) lines.push(`Wedding date: ${date}`);
+    if (date) lines.push(`Wedding date: ${prettyDate(date)}`);
+    const functions = data.getAll('functions');
+    if (functions.length) lines.push(`Functions: ${functions.join(', ')}`);
     const message = data.get('message');
     if (message) lines.push(`Message: ${message}`);
 
     const url = `https://wa.me/919235112453?text=${encodeURIComponent(lines.join('\n'))}`;
-    window.open(url, '_blank', 'noopener');
 
+    // Some in-app browsers (Instagram, Facebook) block new windows; fall
+    // back to opening WhatsApp in this tab so the enquiry is never lost.
+    const win = window.open(url, '_blank');
+    if (win) win.opener = null;
+    else window.location.href = url;
+
+    if (fallbackLink) fallbackLink.href = url;
     confirmation.hidden = false;
-    form.reset();
   });
 }
 
 // ---------- Magnetic buttons (fine pointers only) ----------
-const finePointer = window.matchMedia('(pointer: fine)').matches;
-
 if (finePointer && !reducedMotion) {
   document.querySelectorAll('.btn-fill, .btn-outline, .header-cta').forEach((btn) => {
     btn.addEventListener('mousemove', (e) => {
@@ -254,36 +301,36 @@ if (finePointer && !reducedMotion) {
 }
 
 // ---------- Hero mouse drift ----------
-const heroImg = document.querySelector('.ph-hero');
+const heroMedia = document.querySelector('.hero .arch-media');
 const heroSection = document.querySelector('.hero');
 
-if (heroImg && heroSection && finePointer && !reducedMotion) {
+if (heroMedia && heroSection && finePointer && !reducedMotion) {
   heroSection.addEventListener('mousemove', (e) => {
-    const mx = (e.clientX / window.innerWidth - 0.5) * 10;
-    const my = (e.clientY / window.innerHeight - 0.5) * 8;
-    heroImg.style.transform = `scale(1.08) translate(${mx.toFixed(1)}px, ${my.toFixed(1)}px)`;
+    heroMedia.style.setProperty('--mx', `${((e.clientX / window.innerWidth - 0.5) * 10).toFixed(1)}px`);
+    heroMedia.style.setProperty('--my', `${((e.clientY / window.innerHeight - 0.5) * 8).toFixed(1)}px`);
   });
   heroSection.addEventListener('mouseleave', () => {
-    heroImg.style.transform = '';
+    heroMedia.style.setProperty('--mx', '0px');
+    heroMedia.style.setProperty('--my', '0px');
   });
 }
 
 // ---------- WhatsApp nudge bubble (once per session) ----------
 const waHref = 'https://wa.me/919235112453?text=' + encodeURIComponent('Hi Namita, I\'d like to ask about bridal makeup.');
 
-if (!sessionStorage.getItem('ngm-bubble-seen')) {
+if (!store.get('ngm-bubble-seen')) {
   const bubble = document.createElement('div');
   bubble.className = 'wa-bubble';
   bubble.setAttribute('role', 'status');
   bubble.innerHTML =
-    '<button class="wa-bubble-close" aria-label="Dismiss">&times;</button>' +
+    '<button class="wa-bubble-close" type="button" aria-label="Dismiss">&times;</button>' +
     '<p>Hi! I\'m Namita. Wondering if your date is free? Just ask.</p>' +
-    `<a href="${waHref}" target="_blank" rel="noopener">Say Hi On WhatsApp</a>`;
+    `<a href="${waHref}" target="_blank" rel="noopener">Say hi on WhatsApp</a>`;
   document.body.appendChild(bubble);
 
   const hideBubble = () => {
     bubble.classList.remove('show');
-    sessionStorage.setItem('ngm-bubble-seen', '1');
+    store.set('ngm-bubble-seen', '1');
   };
 
   setTimeout(() => bubble.classList.add('show'), 6000);
@@ -293,18 +340,19 @@ if (!sessionStorage.getItem('ngm-bubble-seen')) {
 }
 
 // ---------- Booking bar (all pages except the enquiry page) ----------
-if (!form && !sessionStorage.getItem('ngm-bar-dismissed')) {
+if (!form && !store.get('ngm-bar-dismissed')) {
   const onAcademy = /academy/i.test(location.pathname);
   const bar = document.createElement('div');
   bar.className = 'booking-bar';
   bar.setAttribute('role', 'complementary');
+  bar.setAttribute('aria-label', 'Booking reminder');
   bar.innerHTML = onAcademy
-    ? '<p><strong>Small Batches, Limited Seats.</strong><span> The next batch fills quickly.</span></p>' +
-      '<a href="contact.html" class="bar-cta">Ask About Admissions</a>' +
-      '<button class="bar-close" aria-label="Dismiss">&times;</button>'
-    : '<p><strong>Wedding Season Fills Fast.</strong><span> Dates are first come, first served.</span></p>' +
-      '<a href="contact.html" class="bar-cta">Check Your Date</a>' +
-      '<button class="bar-close" aria-label="Dismiss">&times;</button>';
+    ? '<p><strong>Small batches, limited seats.</strong><span> The next batch fills quickly.</span></p>' +
+      '<a href="contact.html" class="bar-cta">Ask about admissions</a>' +
+      '<button class="bar-close" type="button" aria-label="Dismiss">&times;</button>'
+    : '<p><strong>Wedding season fills fast.</strong><span> Dates are first come, first served.</span></p>' +
+      '<a href="contact.html" class="bar-cta">Check your date</a>' +
+      '<button class="bar-close" type="button" aria-label="Dismiss">&times;</button>';
   document.body.appendChild(bar);
 
   let barShown = false;
@@ -321,7 +369,7 @@ if (!form && !sessionStorage.getItem('ngm-bar-dismissed')) {
   bar.querySelector('.bar-close').addEventListener('click', () => {
     bar.classList.remove('show');
     document.body.classList.remove('bar-show');
-    sessionStorage.setItem('ngm-bar-dismissed', '1');
+    store.set('ngm-bar-dismissed', '1');
   });
 }
 
@@ -337,6 +385,16 @@ if (cursorCard && heroSection && !reducedMotion) {
   let ccSwapX = 0, ccSwapY = 0;
   let ccActive = false;
   let ccRaf = null;
+  let ccLoaded = false;
+
+  // the card's photos load on first use, not with the page
+  const ccLoad = () => {
+    if (ccLoaded) return;
+    ccLoaded = true;
+    ccImgs.forEach((el) => {
+      if (el.dataset.bg) el.style.backgroundImage = `url('${el.dataset.bg}')`;
+    });
+  };
 
   const ccTick = () => {
     ccX += (ccTargetX - ccX) * 0.12;
@@ -358,6 +416,7 @@ if (cursorCard && heroSection && !reducedMotion) {
   };
 
   const ccShow = (swapDist) => {
+    ccLoad();
     if (!ccActive) {
       ccActive = true;
       ccX = ccTargetX;
@@ -381,10 +440,18 @@ if (cursorCard && heroSection && !reducedMotion) {
     cursorCard.classList.remove('show');
   };
 
+  // the card never appears over the arch photo, where it would only
+  // cover the bride
+  const arch = heroSection.querySelector('.hero-arch');
+
   // desktop: card floats to the right of the mouse cursor
   if (finePointer) {
     heroSection.addEventListener('pointermove', (e) => {
       if (e.pointerType !== 'mouse') return;
+      if (arch && arch.contains(e.target)) {
+        ccHide();
+        return;
+      }
       ccAim(e.clientX, e.clientY, 90, 12);
       ccShow(150);
     });
@@ -400,6 +467,7 @@ if (cursorCard && heroSection && !reducedMotion) {
     ccY = ccTargetY;
   }, { passive: true });
   heroSection.addEventListener('touchmove', (e) => {
+    if (arch && arch.contains(e.target)) return;
     ccAim(e.touches[0].clientX, e.touches[0].clientY, 0, -100);
     ccShow(110);
   }, { passive: true });
