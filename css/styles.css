@@ -1079,19 +1079,29 @@ html.js .mf-item.reveal.in { transform: none; }
 .lb-next { right: calc(23rem + 1.5rem); top: 50%; transform: translateY(-50%); }
 .lb-close { top: 1.25rem; right: 1.25rem; font-size: 1.5rem; }
 
-/* ---------- before / after slider ---------- */
+/* ---------- before / after slider (home section + viewer) ----------
+   --pos is registered so the divider can glide (hint sweep, return to
+   centre); .is-tracking makes it follow the pointer almost instantly. */
+@property --pos {
+  syntax: "<percentage>";
+  inherits: true;
+  initial-value: 50%;
+}
 .compare {
   position: relative;
-  display: inline-block;
-  max-width: 100%;
+  transition: --pos 0.75s var(--ease-out);
+}
+.compare.is-tracking { transition-duration: 0.06s; }
+.cmp-stage {
+  position: relative;
   overflow: hidden;
-  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.5);
   touch-action: pan-y;
+  cursor: ew-resize;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
 }
-.cmp-after {
-  max-width: 100%;
-  max-height: var(--stage-max, calc(100dvh - 9rem));
-}
+.cmp-stage img { pointer-events: none; -webkit-user-drag: none; }
 .cmp-before {
   position: absolute;
   inset: 0;
@@ -1108,30 +1118,34 @@ html.js .mf-item.reveal.in { transform: none; }
   width: 2px;
   margin-left: -1px;
   background: var(--white);
+  box-shadow: 0 0 14px rgba(20, 4, 8, 0.35);
   pointer-events: none;
 }
-.cmp-handle::after {
-  content: "\2194";
+.cmp-knob {
   position: absolute;
-  top: 50%;
+  top: 58%;
   left: 50%;
   display: grid;
   place-items: center;
-  width: 2.75rem;
-  height: 2.75rem;
+  width: 3rem;
+  height: 3rem;
   border-radius: 50%;
   background: var(--white);
   color: var(--velvet);
-  font-size: 1.1rem;
+  box-shadow: 0 8px 24px rgba(20, 4, 8, 0.3);
   transform: translate(-50%, -50%);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+  transition: transform 0.3s var(--ease-out), background 0.3s, color 0.3s;
 }
+.cmp-knob svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.cmp-stage:hover .cmp-knob { transform: translate(-50%, -50%) scale(1.08); }
+.compare.is-dragging .cmp-knob { transform: translate(-50%, -50%) scale(0.92); background: var(--gold-soft); }
 .cmp-label {
   position: absolute;
-  top: 1rem;
-  padding: 0.35em 0.9em;
+  padding: 0.4em 1em;
   border-radius: 999px;
   background: rgba(30, 8, 13, 0.55);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
   color: #fff;
   font-size: 0.625rem;
   font-weight: 500;
@@ -1141,16 +1155,46 @@ html.js .mf-item.reveal.in { transform: none; }
 }
 .cmp-label-before { left: 1rem; }
 .cmp-label-after { right: 1rem; }
+/* keyboard control: hidden, but the whole slider shows a focus ring */
 .cmp-range {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  opacity: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+.compare:has(.cmp-range:focus-visible) { outline: 1.5px solid currentColor; outline-offset: 6px; }
+
+/* in the viewer: the after photo sets the size */
+.compare--viewer {
+  display: inline-block;
+  max-width: 100%;
+  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.5);
+  animation: lbIn 0.5s var(--ease-out);
+}
+.compare--viewer:has(.cmp-range:focus-visible) { outline-color: var(--gold-soft); }
+.compare--viewer .cmp-after {
+  display: block;
+  max-width: 100%;
+  max-height: var(--stage-max, calc(100dvh - 9rem));
+}
+.compare--viewer .cmp-label { top: 1rem; }
+
+/* on the page: a fixed portrait window inside the arch */
+.compare--inline .cmp-stage {
+  aspect-ratio: 4 / 5.4;
+  background: var(--rose);
+}
+.compare--inline .cmp-after {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
-  margin: 0;
-  opacity: 0;
-  cursor: ew-resize;
+  object-fit: cover;
 }
-.compare:has(.cmp-range:focus-visible) { outline: 1.5px solid var(--gold-soft); outline-offset: 4px; }
+.compare--inline .cmp-label { bottom: 1.1rem; }
 
 /* ============ COLLAGE (services) ============
    Five portrait tiles in a staggered row; the middle one keeps the
@@ -2187,6 +2231,101 @@ body.bar-show .wa-bubble { bottom: calc(1.5rem + 126px); }
 }
 .bar-close:hover { color: var(--on-velvet); }
 
+/* ============ THE TRANSFORMATION (home, before / after) ============ */
+.transform {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  grid-template-areas:
+    "head frame"
+    "foot frame";
+  column-gap: clamp(2.5rem, 6vw, 6rem);
+  padding: var(--section-gap) var(--pad) 0;
+}
+.tf-head { grid-area: head; align-self: end; }
+.tf-foot { grid-area: foot; align-self: start; }
+.tf-frame { grid-area: frame; align-self: center; }
+.tf-title {
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: clamp(2.4rem, 5vw, 4.25rem);
+  line-height: 1.04;
+  letter-spacing: -0.015em;
+}
+.tf-title em { font-style: italic; color: var(--sindoor); }
+.tf-sub {
+  max-width: 26rem;
+  margin-top: 1.25rem;
+  color: var(--muted);
+}
+.tf-look {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  margin-top: 2rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--line);
+  max-width: 26rem;
+}
+.tf-look-style {
+  font-size: 0.625rem;
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.tf-look-title {
+  font-family: var(--display);
+  font-style: italic;
+  font-size: 1.1875rem;
+}
+.tf-thumbs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+.tf-thumb {
+  position: relative;
+  width: 3.5rem;
+  padding: 0 0 0.6rem;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+.tf-thumb img {
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  object-fit: cover;
+  opacity: 0.55;
+  transition: opacity 0.3s, transform 0.35s var(--ease-out);
+}
+.tf-thumb::after {
+  content: "";
+  position: absolute;
+  left: 20%;
+  right: 20%;
+  bottom: 0;
+  height: 2px;
+  background: var(--sindoor);
+  transform: scaleX(0);
+  transition: transform 0.35s var(--ease-out);
+}
+.tf-thumb:hover img { opacity: 0.85; transform: translateY(-2px); }
+.tf-thumb[aria-pressed="true"] img { opacity: 1; }
+.tf-thumb[aria-pressed="true"]::after { transform: scaleX(1); }
+.tf-foot .btn-fill { margin-top: 2rem; }
+
+.tf-frame {
+  position: relative;
+  justify-self: center;
+  width: min(100%, 30rem);
+}
+.tf-compare { transition: opacity 0.22s ease; }
+.tf-compare.is-swapping { opacity: 0; }
+/* the gold arch draws in the first time the slider is on screen */
+.tf-frame .arch-line { animation: none; }
+.tf-frame.is-seen .arch-line { animation: drawLine 2.4s var(--ease-out) forwards; }
+
 /* ============ PRICE NOTE (hero) ============ */
 .hero-note {
   margin-top: 1.4rem;
@@ -2404,6 +2543,13 @@ body.bar-show .shortlist-pill { bottom: calc(1.5rem + 58px); }
   .page-header { padding-top: 8.5rem; }
 
   .looks-head { grid-template-columns: 1fr; }
+
+  .transform {
+    grid-template-columns: 1fr;
+    grid-template-areas: "head" "frame" "foot";
+    row-gap: 2.5rem;
+  }
+  .tf-frame { width: min(88vw, 26rem); }
   .look-card-strip { flex-basis: 62vw; }
 
   .portfolio-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }

@@ -161,30 +161,115 @@
     `Hi Namita, I loved the "${item.title}" look on your website (${lookUrl(item)}). Is my date free?`
   )}`;
 
-  const compareSlider = (item) => {
-    const wrap = make('div', 'compare');
-    wrap.style.setProperty('--pos', '50%');
+  // ============ BEFORE / AFTER SLIDER ============
+  // One component for the home page section (variant 'inline', arch framed)
+  // and the viewer ('viewer'). Mouse: the divider follows the pointer.
+  // Touch: drag sideways; vertical swipes still scroll the page.
+  // Keyboard: arrow keys on the visually hidden range input.
+  const KNOB = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l-6 6 6 6M15 6l6 6-6 6"/></svg>';
+
+  const buildCompare = (item, variant) => {
+    const wrap = make('div', `compare compare--${variant}`);
+    const stage = make('div', `cmp-stage${variant === 'inline' ? ' arch' : ''}`);
+
     const after = make('img', 'cmp-after');
     after.src = item.src;
     after.alt = item.alt || item.title;
+    after.draggable = false;
     const before = make('img', 'cmp-before');
     before.src = item.before;
     before.alt = `${item.title}, before makeup`;
+    before.draggable = false;
+    if (variant === 'inline') {
+      after.loading = 'lazy';
+      before.loading = 'lazy';
+      after.decoding = 'async';
+      before.decoding = 'async';
+      if (item.focus) {
+        after.style.objectPosition = item.focus;
+        before.style.objectPosition = item.focus;
+      }
+    }
+
     const handle = make('span', 'cmp-handle');
     handle.setAttribute('aria-hidden', 'true');
+    const knob = make('span', 'cmp-knob');
+    knob.innerHTML = KNOB;
+    handle.appendChild(knob);
+
+    stage.append(after, before, handle,
+      make('span', 'cmp-label cmp-label-before', 'Before'),
+      make('span', 'cmp-label cmp-label-after', 'After'));
+
     const range = make('input', 'cmp-range');
     range.type = 'range';
     range.min = '0';
     range.max = '100';
     range.value = '50';
-    range.setAttribute('aria-label', 'Drag to compare before and after');
-    range.addEventListener('input', () => wrap.style.setProperty('--pos', `${range.value}%`));
-    wrap.append(after, before, make('span', 'cmp-label cmp-label-before', 'Before'), make('span', 'cmp-label cmp-label-after', 'After'), handle, range);
-    return wrap;
+    range.setAttribute('aria-label', `Compare before and after: ${item.title}`);
+
+    wrap.append(stage, range);
+
+    let touched = false; // once someone interacts, the hint sweep never runs
+    const setPos = (pct) => {
+      const p = Math.max(0, Math.min(100, pct));
+      wrap.style.setProperty('--pos', `${p.toFixed(1)}%`);
+      range.value = String(Math.round(p));
+      range.setAttribute('aria-valuetext', `${Math.round(p)}% before, ${100 - Math.round(p)}% after`);
+    };
+    const fromEvent = (e) => {
+      const r = stage.getBoundingClientRect();
+      return ((e.clientX - r.left) / r.width) * 100;
+    };
+    setPos(50);
+
+    range.addEventListener('input', () => {
+      touched = true;
+      setPos(Number(range.value));
+    });
+
+    let dragging = false;
+    stage.addEventListener('pointerdown', (e) => {
+      touched = true;
+      if (e.pointerType === 'mouse') return;
+      dragging = true;
+      wrap.classList.add('is-tracking', 'is-dragging');
+      setPos(fromEvent(e));
+    });
+    stage.addEventListener('pointermove', (e) => {
+      if (e.pointerType === 'mouse') {
+        touched = true;
+        wrap.classList.add('is-tracking');
+        setPos(fromEvent(e));
+      } else if (dragging) {
+        setPos(fromEvent(e));
+      }
+    });
+    const endDrag = () => {
+      dragging = false;
+      wrap.classList.remove('is-tracking', 'is-dragging');
+    };
+    stage.addEventListener('pointerup', endDrag);
+    stage.addEventListener('pointercancel', endDrag); // the browser took over to scroll
+    stage.addEventListener('pointerleave', (e) => {
+      if (e.pointerType !== 'mouse') return;
+      wrap.classList.remove('is-tracking');
+      if (variant === 'inline') setPos(50); // glide back to the middle
+    });
+
+    // a gentle back-and-forth that shows the photo can be dragged
+    const hint = () => {
+      if (touched || reducedMotion) return;
+      [[0, 32], [750, 68], [1500, 50]].forEach(([delay, pct]) => {
+        setTimeout(() => { if (!touched) setPos(pct); }, delay);
+      });
+    };
+
+    return { el: wrap, hint };
   };
 
   const viewerMedia = (item) => {
-    if (item.before) return compareSlider(item);
+    if (item.before) return buildCompare(item, 'viewer').el;
     if (item.type === 'video') {
       const video = make('video', 'lb-media');
       video.src = item.src;
@@ -334,7 +419,8 @@
     let startX = null;
     let startY = 0;
     ui.stage.addEventListener('pointerdown', (e) => {
-      if (e.pointerType === 'mouse' || e.target.matches('input')) return;
+      // dragging a before/after slider is not a swipe to the next look
+      if (e.pointerType === 'mouse' || e.target.closest('.compare')) return;
       startX = e.clientX;
       startY = e.clientY;
     });
@@ -497,6 +583,76 @@
     };
     if (document.readyState === 'complete') addSlides();
     else window.addEventListener('load', addSlides, { once: true });
+  }
+
+  // ============ THE TRANSFORMATION (home) ============
+  // Shows every look that has a `before` photo. The section stays hidden
+  // until at least one real before/after pair is added to the data file.
+  const tfSection = document.getElementById('transformation');
+  const transforms = items.filter((it) => it.before && it.type === 'photo');
+
+  if (tfSection && transforms.length) {
+    tfSection.hidden = false;
+    const holder = tfSection.querySelector('.tf-compare');
+    const frame = tfSection.querySelector('.tf-frame');
+    const lookStyle = tfSection.querySelector('.tf-look-style');
+    const lookTitle = tfSection.querySelector('.tf-look-title');
+    const thumbsWrap = tfSection.querySelector('.tf-thumbs');
+    const sub = tfSection.querySelector('.tf-sub');
+    if (sub && finePointer) sub.textContent = 'Move your mouse across the photo to see the difference.';
+
+    let currentCompare = null;
+    let seen = false;
+
+    const showTransform = (n) => {
+      const item = transforms[n];
+      currentCompare = buildCompare(item, 'inline');
+      holder.replaceChildren(currentCompare.el);
+      lookStyle.textContent = item.style;
+      lookTitle.textContent = item.details ? `${item.title} · ${item.details}` : item.title;
+      thumbs.forEach((t, i) => t.setAttribute('aria-pressed', String(i === n)));
+      if (seen) currentCompare.hint();
+    };
+
+    const thumbs = transforms.length > 1 ? transforms.map((item, n) => {
+      const btn = make('button', 'tf-thumb');
+      btn.type = 'button';
+      btn.setAttribute('aria-label', `Show ${item.title}`);
+      const img = make('img', 'arch');
+      img.src = item.thumb || item.src;
+      img.alt = '';
+      img.loading = 'lazy';
+      if (item.focus) img.style.objectPosition = item.focus;
+      btn.appendChild(img);
+      btn.addEventListener('click', () => {
+        // a quick cross-fade while the next pair swaps in
+        holder.classList.add('is-swapping');
+        setTimeout(() => {
+          showTransform(n);
+          holder.classList.remove('is-swapping');
+        }, reducedMotion ? 0 : 220);
+      });
+      thumbsWrap.appendChild(btn);
+      return btn;
+    }) : [];
+    if (!thumbs.length) thumbsWrap.hidden = true;
+
+    showTransform(0);
+
+    // the first time the slider is properly on screen, draw the gold arch
+    // and sweep the divider once so it is obvious it can be dragged
+    if ('IntersectionObserver' in window) {
+      const io = new IntersectionObserver((entries) => {
+        if (!entries.some((e) => e.isIntersecting)) return;
+        io.disconnect();
+        seen = true;
+        frame.classList.add('is-seen');
+        setTimeout(() => currentCompare.hint(), 600);
+      }, { threshold: 0.55 });
+      io.observe(holder);
+    } else {
+      frame.classList.add('is-seen');
+    }
   }
 
   // ============ HOME STRIP ============

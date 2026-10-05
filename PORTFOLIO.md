@@ -114,7 +114,17 @@ same size (1200 px wide), then add `before:` to the entry:
 },
 ```
 
-A "Before / after" badge and filter appear automatically.
+Adding the first pair also switches on **"The transformation"** section
+on the home page: a large arch-framed slider where visitors move the
+mouse (or drag a finger) across the photo to wipe between before and
+after. With two or more pairs, thumbnails appear underneath to switch
+between them; the first pair in the list is shown first. In the
+portfolio, a "Before / after" badge and filter appear automatically too.
+
+To preview the slider before you have real photos, start the local
+server and open `http://localhost:5500/.tmp/transformation-demo.html`.
+It uses stand-in photos, is clearly labelled, and is never deployed
+(the `.tmp` folder is git-ignored).
 
 Always get the bride's written OK (a WhatsApp message counts) before
 posting her photos, and especially before and after photos.
