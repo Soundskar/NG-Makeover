@@ -617,7 +617,7 @@ html.js .reveal.in {
 
 /* ============ PAGE HEADER (subpages) ============ */
 .page-header {
-  padding: clamp(9rem, 15vw, 13rem) var(--pad) 0;
+  padding: clamp(12rem, 15vw, 13.5rem) var(--pad) 0; /* room for the toran */
 }
 .page-heading {
   font-family: var(--display);
@@ -2381,6 +2381,455 @@ html:not(.js) .step::before { transform: scaleX(1); }
 .shortlist-pill:hover svg { fill: var(--white); stroke: var(--white); }
 .shortlist-pill.bump svg { animation: heartPop 0.45s var(--ease-out); }
 
+/* ============ THE WEDDING: shared motifs ============
+   Patterns are SVG tiles: jaali (the Imambara's lattice screens),
+   henna, and chikankari (Lucknow's white-on-white embroidery). */
+:root {
+  --deva: "Tiro Devanagari Hindi", "Nirmala UI", "Noto Serif Devanagari", serif;
+  --jaali: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='56' viewBox='0 0 56 56'%3E%3Cg fill='none' stroke='%23E3CB98' stroke-width='1'%3E%3Crect x='16' y='16' width='24' height='24'/%3E%3Crect x='16' y='16' width='24' height='24' transform='rotate(45 28 28)'/%3E%3Cpath d='M0 28h11M45 28h11M28 0v11M28 45v11'/%3E%3C/g%3E%3C/svg%3E");
+  --henna: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='130' height='130' viewBox='0 0 130 130'%3E%3Cg fill='none' stroke='%23E9D9A6' stroke-width='1.2' stroke-linecap='round'%3E%3Ccircle cx='65' cy='65' r='5'/%3E%3Ccircle cx='65' cy='65' r='12'/%3E%3Cpath d='M65 52c-5-8-5-15 0-20 5 5 5 12 0 20z'/%3E%3Cpath d='M65 52c-5-8-5-15 0-20 5 5 5 12 0 20z' transform='rotate(45 65 65)'/%3E%3Cpath d='M65 52c-5-8-5-15 0-20 5 5 5 12 0 20z' transform='rotate(90 65 65)'/%3E%3Cpath d='M65 52c-5-8-5-15 0-20 5 5 5 12 0 20z' transform='rotate(135 65 65)'/%3E%3Cpath d='M65 52c-5-8-5-15 0-20 5 5 5 12 0 20z' transform='rotate(180 65 65)'/%3E%3Cpath d='M65 52c-5-8-5-15 0-20 5 5 5 12 0 20z' transform='rotate(225 65 65)'/%3E%3Cpath d='M65 52c-5-8-5-15 0-20 5 5 5 12 0 20z' transform='rotate(270 65 65)'/%3E%3Cpath d='M65 52c-5-8-5-15 0-20 5 5 5 12 0 20z' transform='rotate(315 65 65)'/%3E%3Ccircle cx='65' cy='65' r='27' stroke-dasharray='0.1 5.4' stroke-width='2.4'/%3E%3Cpath d='M8 30c-7-9 1-21 12-16 9 4 6 16-3 15-5 0-6-6-2-7'/%3E%3Cpath d='M8 30c-7-9 1-21 12-16 9 4 6 16-3 15-5 0-6-6-2-7' transform='rotate(180 65 65)'/%3E%3Cpath d='M0 118c22-10 43 10 65 0s43-10 65 0'/%3E%3C/g%3E%3C/svg%3E");
+  --chikan: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='96' height='96' viewBox='0 0 96 96'%3E%3Cg fill='none' stroke='%23FFFFFF' stroke-width='1.3' stroke-linecap='round'%3E%3Cpath d='M24 24c-3-6-2-10 0-12 2 2 3 6 0 12z'/%3E%3Cpath d='M24 24c-3-6-2-10 0-12 2 2 3 6 0 12z' transform='rotate(72 24 24)'/%3E%3Cpath d='M24 24c-3-6-2-10 0-12 2 2 3 6 0 12z' transform='rotate(144 24 24)'/%3E%3Cpath d='M24 24c-3-6-2-10 0-12 2 2 3 6 0 12z' transform='rotate(216 24 24)'/%3E%3Cpath d='M24 24c-3-6-2-10 0-12 2 2 3 6 0 12z' transform='rotate(288 24 24)'/%3E%3Ccircle cx='24' cy='24' r='1.6'/%3E%3Cpath d='M26 36c4 8 12 14 22 16' stroke-dasharray='0.1 3.2' stroke-width='1.8'/%3E%3Cpath d='M34 44c3-5 8-6 11-4-3 4-8 6-11 4z'/%3E%3Cpath d='M70 68c-2-4-1.5-7 0-8.5 1.5 1.5 2 4.5 0 8.5z'/%3E%3Cpath d='M70 68c-2-4-1.5-7 0-8.5 1.5 1.5 2 4.5 0 8.5z' transform='rotate(72 70 68)'/%3E%3Cpath d='M70 68c-2-4-1.5-7 0-8.5 1.5 1.5 2 4.5 0 8.5z' transform='rotate(144 70 68)'/%3E%3Cpath d='M70 68c-2-4-1.5-7 0-8.5 1.5 1.5 2 4.5 0 8.5z' transform='rotate(216 70 68)'/%3E%3Cpath d='M70 68c-2-4-1.5-7 0-8.5 1.5 1.5 2 4.5 0 8.5z' transform='rotate(288 70 68)'/%3E%3Ccircle cx='70' cy='68' r='1.2'/%3E%3C/g%3E%3C/svg%3E");
+}
+
+/* ---------- toran: the marigold garland over each page's doorway ---------- */
+.hero,
+.page-header { position: relative; }
+.toran {
+  position: absolute;
+  top: 4.9rem;
+  left: 0;
+  right: 0;
+  z-index: 3;
+  height: 108px;
+  overflow: hidden;
+  pointer-events: none;
+  filter: drop-shadow(0 5px 5px rgba(110, 50, 0, 0.18));
+  animation: toranIn 1.4s var(--ease-out) both;
+  animation-delay: calc(var(--intro-delay, 0s) + 0.1s);
+}
+.toran svg { display: block; overflow: visible; }
+@keyframes toranIn {
+  from { opacity: 0; transform: translateY(-24px); }
+  to   { opacity: 1; transform: none; }
+}
+.toran-drop {
+  transform-box: fill-box;
+  transform-origin: 50% 0;
+  animation: toranSway 4.5s ease-in-out infinite alternate;
+}
+@keyframes toranSway {
+  from { transform: rotate(-3deg); }
+  to   { transform: rotate(3deg); }
+}
+
+/* ---------- jaali texture on the velvet sections ---------- */
+.looks::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--jaali) 0 0 / 56px 56px;
+  opacity: 0.07;
+  pointer-events: none;
+}
+.looks > * { position: relative; }
+
+/* ---------- petal shower ---------- */
+.petal-canvas {
+  position: fixed;
+  inset: 0;
+  z-index: 95;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+/* ============ THE CELEBRATIONS (home) ============
+   One section that changes with the function: palette, decoration,
+   photo and the makeup approach. Scene colours live in --sc-* tokens. */
+.celebrations {
+  --sc-bg: #F6D46F;
+  --sc-ink: #3A2712;
+  --sc-muted: #6B4A1F;
+  --sc-accent: #A94E0E;
+  --sc-btn: #3A2712;
+  --sc-btn-ink: #F6D46F;
+  --sc-line: rgba(58, 39, 18, 0.25);
+  position: relative;
+  overflow: hidden;
+  padding: clamp(4.5rem, 9vw, 7.5rem) var(--pad) clamp(4rem, 8vw, 6.5rem);
+  background-color: var(--sc-bg);
+  color: var(--sc-ink);
+  transition: background-color 0.9s var(--ease-out), color 0.9s var(--ease-out);
+}
+.celebrations[data-scene="mehendi"] {
+  --sc-bg: #2E4A2C;
+  --sc-ink: #F2EAD3;
+  --sc-muted: #C9CDB0;
+  --sc-accent: #E3CB98;
+  --sc-btn: #E3CB98;
+  --sc-btn-ink: #22351F;
+  --sc-line: rgba(242, 234, 211, 0.25);
+}
+.celebrations[data-scene="sangeet"] {
+  --sc-bg: #1C1B3D;
+  --sc-ink: #F3ECE1;
+  --sc-muted: #B9B3D6;
+  --sc-accent: #E3CB98;
+  --sc-btn: #E3CB98;
+  --sc-btn-ink: #1C1B3D;
+  --sc-line: rgba(243, 236, 225, 0.22);
+}
+.celebrations[data-scene="pheras"] {
+  --sc-bg: #6A1322;
+  --sc-ink: #F7E7D2;
+  --sc-muted: #E3B9A8;
+  --sc-accent: #F0CF8A;
+  --sc-btn: #F0CF8A;
+  --sc-btn-ink: #4A0C17;
+  --sc-line: rgba(247, 231, 210, 0.25);
+}
+.celebrations[data-scene="reception"] {
+  --sc-bg: #EFE9E3;
+  --sc-ink: #2A1A1D;
+  --sc-muted: #6F6460;
+  --sc-accent: #8E7A5A;
+  --sc-btn: #2A1A1D;
+  --sc-btn-ink: #EFE9E3;
+  --sc-line: rgba(42, 26, 29, 0.2);
+}
+.celebrations .eyebrow { color: var(--sc-accent); }
+.celebrations :focus-visible { outline-color: var(--sc-ink); }
+
+/* decoration layers: one per function, cross-fading */
+.cel-decor { position: absolute; inset: 0; pointer-events: none; }
+.decor {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 0.9s var(--ease-out);
+}
+.celebrations[data-scene="haldi"] .decor-haldi,
+.celebrations[data-scene="mehendi"] .decor-mehendi,
+.celebrations[data-scene="sangeet"] .decor-sangeet,
+.celebrations[data-scene="pheras"] .decor-pheras,
+.celebrations[data-scene="reception"] .decor-reception { opacity: 1; }
+
+/* haldi: morning sun and drifting marigold petals */
+.decor-haldi {
+  background:
+    radial-gradient(55% 45% at 88% 8%, rgba(255, 246, 205, 0.95), transparent 62%),
+    radial-gradient(45% 45% at 5% 95%, rgba(240, 138, 28, 0.22), transparent 70%);
+}
+.hp {
+  position: absolute;
+  width: var(--hp-size, 12px);
+  height: calc(var(--hp-size, 12px) * 0.62);
+  border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+  background: linear-gradient(120deg, #F8B13A, #D9690E);
+  opacity: 0.75;
+  transform: rotate(var(--hp-rot, 0deg));
+  animation: hpDrift 12s ease-in-out infinite alternate;
+}
+.hp-yellow { background: linear-gradient(120deg, #FCD86A, #E4A11B); }
+@keyframes hpDrift {
+  from { transform: translate(0, 0) rotate(var(--hp-rot, 0deg)); }
+  to   { transform: translate(18px, 26px) rotate(calc(var(--hp-rot, 0deg) + 140deg)); }
+}
+
+/* mehendi: henna line-work */
+.decor-mehendi {
+  background:
+    radial-gradient(70% 60% at 50% 40%, transparent 30%, rgba(14, 26, 13, 0.45) 100%),
+    var(--henna) 0 0 / 130px 130px;
+}
+.decor-mehendi::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--sc-bg);
+  opacity: 0.86;
+}
+
+/* sangeet: fairy lights across the night */
+/* a fixed height keeps the bulbs small on tall phone sections */
+.fairy {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 560px;
+  filter: drop-shadow(0 0 5px rgba(255, 214, 120, 0.9));
+}
+.fairy-wire { fill: none; stroke: rgba(227, 203, 152, 0.25); stroke-width: 1; }
+.fairy-bulb {
+  fill: #FFE7A8;
+  animation: twinkle 2.4s ease-in-out infinite alternate;
+}
+@keyframes twinkle {
+  from { opacity: 0.35; }
+  to   { opacity: 1; }
+}
+
+/* the pheras: the sacred fire's glow, behind a gold jaali */
+.decor-pheras { background: var(--jaali) 0 0 / 56px 56px; }
+.decor-pheras::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: #6A1322;
+  opacity: 0.9;
+}
+.fire {
+  position: absolute;
+  left: 50%;
+  bottom: -32%;
+  width: 90%;
+  height: 75%;
+  transform: translateX(-50%);
+  background: radial-gradient(closest-side, rgba(255, 196, 92, 0.55), rgba(226, 92, 32, 0.28) 55%, transparent);
+  animation: fireGlow 2.6s ease-in-out infinite;
+}
+@keyframes fireGlow {
+  0%   { opacity: 0.8; transform: translateX(-50%) scale(1); }
+  30%  { opacity: 1; transform: translateX(-50%) scale(1.05, 1.08); }
+  55%  { opacity: 0.85; transform: translateX(-50%) scale(0.98, 1.02); }
+  80%  { opacity: 1; transform: translateX(-50%) scale(1.04, 1.1); }
+  100% { opacity: 0.8; transform: translateX(-50%) scale(1); }
+}
+
+/* reception: chikankari white-on-white, and chandelier sparkle */
+.decor-reception { background: var(--chikan) 0 0 / 96px 96px; }
+.sparkle {
+  position: absolute;
+  color: #B9A27A;
+  animation: twinkle 2.2s ease-in-out infinite alternate;
+}
+
+/* head, tabs and stage */
+.cel-head { position: relative; max-width: 40rem; }
+.cel-title {
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: clamp(2.5rem, 5.6vw, 4.75rem);
+  line-height: 1.02;
+  letter-spacing: -0.015em;
+}
+.cel-title em { font-style: italic; }
+.cel-sub { margin-top: 1.1rem; max-width: 30rem; color: var(--sc-muted); transition: color 0.9s; }
+
+/* the function tabs hang on a gold thread, each with a marigold bead */
+.cel-nav {
+  position: relative;
+  display: flex;
+  gap: 0.5rem;
+  margin-top: clamp(2.5rem, 5vw, 3.5rem);
+  padding-top: 0.35rem;
+  scrollbar-width: none;
+}
+.cel-nav::-webkit-scrollbar { display: none; }
+/* each tab draws its own piece of the thread, so it also spans a scrolling row */
+.cel-tab::before {
+  content: "";
+  position: absolute;
+  top: 7px;
+  left: 0;
+  right: -0.5rem;
+  height: 1px;
+  background: var(--sc-line);
+}
+.cel-tab:last-child::before { right: 0; }
+.cel-tab {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.15rem;
+  padding: 1.6rem 0.25rem 0.75rem 0;
+  border: 0;
+  background: none;
+  color: var(--sc-muted);
+  text-align: left;
+  cursor: pointer;
+  transition: color 0.4s;
+}
+.cel-bead {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 40% 35%, #FFC34D, #F08A1C 55%, #C45A0C);
+  box-shadow: 0 0 0 3px var(--sc-bg);
+  transform: scale(0.7);
+  transition: transform 0.4s var(--ease-out), box-shadow 0.9s;
+}
+.cel-dev {
+  font-family: var(--deva);
+  font-size: 1rem;
+  color: var(--sc-accent);
+  transition: color 0.9s;
+}
+.cel-name {
+  font-family: var(--display);
+  font-style: italic;
+  font-size: clamp(1.15rem, 1.8vw, 1.45rem);
+  line-height: 1.2;
+}
+.cel-time {
+  font-size: 0.625rem;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+.cel-tab:hover { color: var(--sc-ink); }
+.cel-tab[aria-selected="true"] { color: var(--sc-ink); }
+.cel-tab[aria-selected="true"] .cel-bead {
+  transform: scale(1.25);
+  box-shadow: 0 0 0 3px var(--sc-bg), 0 0 14px rgba(255, 180, 60, 0.75);
+}
+
+.cel-stage {
+  position: relative;
+  margin-top: clamp(2.5rem, 5vw, 3.5rem);
+}
+.celebrations.is-ready .cel-stage { display: grid; }
+.celebrations.is-ready .scene {
+  grid-area: 1 / 1;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.6s var(--ease-out), visibility 0s 0.6s;
+}
+.celebrations.is-ready .scene.is-active {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.6s var(--ease-out) 0.15s, visibility 0s;
+}
+.scene {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+  align-items: center;
+  gap: clamp(2rem, 6vw, 5.5rem);
+}
+.scene-photo .ph {
+  aspect-ratio: 3 / 4.2;
+  width: min(100%, 22rem);
+  margin-inline: auto;
+  background: rgba(0, 0, 0, 0.12);
+}
+.scene-photo .ph > img { transition: transform 1.4s var(--ease-out); transform: scale(1.06); }
+.scene.is-active .scene-photo .ph > img { transform: none; }
+.scene-time {
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--sc-accent);
+}
+.scene-headline {
+  margin-top: 0.75rem;
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: clamp(2rem, 4.4vw, 3.5rem);
+  line-height: 1.05;
+  letter-spacing: -0.01em;
+}
+.scene-text {
+  margin-top: 1.1rem;
+  max-width: 32rem;
+  color: var(--sc-muted);
+}
+.scene-notes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1.5rem;
+  list-style: none;
+}
+.scene-notes li {
+  padding: 0.45em 1em;
+  border: 1px solid var(--sc-line);
+  border-radius: 999px;
+  font-size: 0.8125rem;
+}
+.scene.is-active .scene-copy > * { animation: captionIn 0.7s var(--ease-out) both; }
+.scene.is-active .scene-copy > :nth-child(2) { animation-delay: 0.08s; }
+.scene.is-active .scene-copy > :nth-child(3) { animation-delay: 0.16s; }
+.scene.is-active .scene-copy > :nth-child(4) { animation-delay: 0.24s; }
+.scene.is-active .scene-copy > :nth-child(5) { animation-delay: 0.32s; }
+.celebrations .scene-cta {
+  margin-top: 2rem;
+  color: var(--sc-btn-ink);
+  background-color: var(--sc-btn);
+  border-color: var(--sc-btn);
+  background-image: linear-gradient(var(--sc-ink), var(--sc-ink));
+}
+.celebrations .scene-cta:hover { color: var(--sc-bg); border-color: var(--sc-ink); }
+
+.cel-arrows {
+  position: relative;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 2rem;
+}
+.cel-arrow {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 50%;
+  border: 1px solid var(--sc-line);
+  background: none;
+  color: var(--sc-ink);
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: background 0.25s, color 0.25s, border-color 0.25s;
+}
+.cel-arrow:hover { background: var(--sc-ink); color: var(--sc-bg); border-color: var(--sc-ink); }
+
+/* ============ SAVE THE DATE (home CTA band) ============ */
+.std-card {
+  position: relative;
+  max-width: 44rem;
+  margin: 0 auto;
+  padding: clamp(2.75rem, 6vw, 4.25rem) clamp(1.25rem, 5vw, 4rem);
+  background: var(--white);
+  border: 1px solid var(--gold);
+  box-shadow:
+    inset 0 0 0 7px var(--white),
+    inset 0 0 0 8px rgba(201, 163, 94, 0.55),
+    0 30px 80px rgba(42, 26, 29, 0.08);
+}
+.std-corner {
+  position: absolute;
+  width: 26px;
+  height: 26px;
+  border-color: var(--gold);
+  border-style: solid;
+}
+.std-corner::after {
+  content: "\2726";
+  position: absolute;
+  font-size: 9px;
+  color: var(--gold);
+}
+.std-tl { top: 14px; left: 14px; border-width: 1px 0 0 1px; }
+.std-tr { top: 14px; right: 14px; border-width: 1px 1px 0 0; }
+.std-bl { bottom: 14px; left: 14px; border-width: 0 0 1px 1px; }
+.std-br { bottom: 14px; right: 14px; border-width: 0 1px 1px 0; }
+.std-tl::after { top: 4px; left: 5px; }
+.std-tr::after { top: 4px; right: 5px; }
+.std-bl::after { bottom: 4px; left: 5px; }
+.std-br::after { bottom: 4px; right: 5px; }
+.std-blessing {
+  margin-bottom: 1rem;
+  font-family: var(--deva);
+  font-size: 1.125rem;
+  letter-spacing: 0.08em;
+  color: var(--gold);
+}
+.std-card .date-check { margin-top: 2rem; }
+
 /* ============ ACTION BAR (phones) ============
    The one persistent call to action on a phone, in the thumb zone.
    main.js shows it once the first call to action has scrolled away. */
@@ -2492,8 +2941,23 @@ html:not(.js) .step::before { transform: scaleX(1); }
   .site-header.menu-open { background: var(--bg); }
 
   .hero { grid-template-columns: 1fr; min-height: 0; }
-  /* tighter on phones so the bride's face makes the first screen */
-  .hero-text { padding-top: 6.5rem; padding-bottom: 2rem; }
+  /* tight on phones so the bride's face makes the first screen, with
+     just enough room for the toran */
+  .hero-text { padding-top: 8.4rem; padding-bottom: 2rem; }
+  .toran { top: 4.5rem; height: 62px; }
+  .page-header { padding-top: 9rem; }
+
+  .cel-nav {
+    overflow-x: auto;
+    scroll-snap-type: x proximity;
+    margin: clamp(2rem, 6vw, 3rem) calc(-1 * var(--pad)) 0;
+    padding-left: var(--pad);
+    padding-right: var(--pad);
+  }
+  .cel-tab { flex: 0 0 auto; min-width: 7.25rem; scroll-snap-align: start; }
+  .scene { grid-template-columns: 1fr; gap: 2rem; }
+  .scene-photo .ph { width: min(68vw, 17rem); }
+  .cel-arrows { justify-content: center; }
   .hero-sub { margin-top: 1.5rem; font-size: 1rem; }
   .hero-arch {
     width: min(84vw, 25rem);
@@ -2669,4 +3133,5 @@ html:not(.js) .step::before { transform: scaleX(1); }
   .step::before { transform: none !important; }
   .arch-dots.is-running .arch-dot.is-active::after { animation: none; }
   .view-cursor { display: none; }
+  .toran, .toran-drop, .hp, .fairy-bulb, .fire, .sparkle { animation: none; }
 }

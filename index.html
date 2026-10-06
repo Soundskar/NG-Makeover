@@ -22,6 +22,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400..600;1,6..96,400..500&family=Jost:wght@400;500&display=swap" rel="stylesheet">
+<!-- Devanagari accents (function names, the blessing): only these 23 letters are downloaded -->
+<link href="https://fonts.googleapis.com/css2?family=Tiro+Devanagari+Hindi&text=%E0%A4%B9%E0%A4%B2%E0%A5%8D%E0%A4%A6%E0%A5%80%E0%A4%AE%E0%A5%87%E0%A4%81%E0%A4%B8%E0%A4%82%E0%A4%97%E0%A4%A4%E0%A4%AB%E0%A4%B0%E0%A4%BF%E0%A4%AA%E0%A4%B6%E0%A4%A8%E0%A5%81%E0%A4%AD%E0%A4%B5%E0%A4%BE%E0%A5%A5&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/styles.css">
 <link rel="preload" as="image" href="assets/img/look-03.webp" imagesrcset="assets/img/look-03-sm.webp 640w, assets/img/look-03.webp 1200w" imagesizes="(max-width: 900px) 84vw, 29rem" fetchpriority="high">
 <meta name="theme-color" content="#F7EFEC">
@@ -87,6 +89,7 @@
 
   <!-- ============ HERO ============ -->
   <section class="hero">
+    <div class="toran" data-toran aria-hidden="true"></div>
     <div class="hero-text">
       <h1 class="hero-heading">
         <span class="line"><span class="line-inner">One bride.</span></span>
@@ -182,6 +185,93 @@
       <p class="tf-look"><span class="tf-look-style"></span><span class="tf-look-title"></span></p>
       <div class="tf-thumbs" role="group" aria-label="Choose a transformation"></div>
       <a href="contact.html?for=Bridal%20trial" class="btn-fill">Book your trial <span class="arrow">&rarr;</span></a>
+    </div>
+  </section>
+
+  <!-- ============ THE CELEBRATIONS: a walk through the wedding (js/celebrations.js) ============ -->
+  <section class="celebrations" id="celebrations" data-scene="haldi" aria-labelledby="celTitle">
+    <div class="cel-decor" aria-hidden="true">
+      <div class="decor decor-haldi"></div>
+      <div class="decor decor-mehendi"></div>
+      <div class="decor decor-sangeet"></div>
+      <div class="decor decor-pheras"><span class="fire"></span></div>
+      <div class="decor decor-reception"></div>
+    </div>
+
+    <div class="cel-head reveal">
+      <p class="eyebrow">The celebrations</p>
+      <h2 class="cel-title" id="celTitle">Five functions. <em>Five looks.</em></h2>
+      <p class="cel-sub">A wedding is days of celebrations, and each one asks something different of your makeup. Walk through them.</p>
+    </div>
+
+    <div class="cel-nav" role="tablist" aria-label="Wedding functions">
+      <button class="cel-tab" role="tab" id="tab-haldi" aria-controls="sc-haldi" aria-selected="true" data-scene="haldi" type="button"><span class="cel-bead" aria-hidden="true"></span><span class="cel-dev" lang="hi" aria-hidden="true">हल्दी</span><span class="cel-name">Haldi</span><span class="cel-time">Morning</span></button>
+      <button class="cel-tab" role="tab" id="tab-mehendi" aria-controls="sc-mehendi" aria-selected="false" data-scene="mehendi" type="button" tabindex="-1"><span class="cel-bead" aria-hidden="true"></span><span class="cel-dev" lang="hi" aria-hidden="true">मेहँदी</span><span class="cel-name">Mehendi</span><span class="cel-time">Afternoon</span></button>
+      <button class="cel-tab" role="tab" id="tab-sangeet" aria-controls="sc-sangeet" aria-selected="false" data-scene="sangeet" type="button" tabindex="-1"><span class="cel-bead" aria-hidden="true"></span><span class="cel-dev" lang="hi" aria-hidden="true">संगीत</span><span class="cel-name">Sangeet</span><span class="cel-time">The night before</span></button>
+      <button class="cel-tab" role="tab" id="tab-pheras" aria-controls="sc-pheras" aria-selected="false" data-scene="pheras" type="button" tabindex="-1"><span class="cel-bead" aria-hidden="true"></span><span class="cel-dev" lang="hi" aria-hidden="true">फेरे</span><span class="cel-name">The Pheras</span><span class="cel-time">The wedding</span></button>
+      <button class="cel-tab" role="tab" id="tab-reception" aria-controls="sc-reception" aria-selected="false" data-scene="reception" type="button" tabindex="-1"><span class="cel-bead" aria-hidden="true"></span><span class="cel-dev" lang="hi" aria-hidden="true">रिसेप्शन</span><span class="cel-name">Reception</span><span class="cel-time">The evening after</span></button>
+    </div>
+
+    <div class="cel-stage">
+      <article class="scene is-active" id="sc-haldi" role="tabpanel" aria-labelledby="tab-haldi">
+        <div class="scene-photo"><div class="ph arch"><img src="assets/img/look-07-sm.webp" srcset="assets/img/look-07-sm.webp 640w, assets/img/look-07.webp 1200w" sizes="(max-width: 900px) 70vw, 22rem" alt="Bride in floral jewellery and an ivory lehenga" loading="lazy" decoding="async" style="object-position: center 22%;"></div></div>
+        <div class="scene-copy">
+          <p class="scene-time">The first morning</p>
+          <h3 class="scene-headline">Sunshine on your skin.</h3>
+          <p class="scene-text">Turmeric, marigolds and a lot of laughter. The look stays fresh and dewy, with a base built to shrug off the haldi and the happy tears.</p>
+          <ul class="scene-notes"><li>Dewy, light base</li><li>Waterproof eyes</li><li>Floral jewellery</li></ul>
+          <a href="contact.html?for=Haldi%20look" class="btn-fill scene-cta">Plan my Haldi look <span class="arrow">&rarr;</span></a>
+        </div>
+      </article>
+
+      <article class="scene" id="sc-mehendi" role="tabpanel" aria-labelledby="tab-mehendi" hidden>
+        <div class="scene-photo"><div class="ph arch"><img src="assets/img/look-08-sm.webp" srcset="assets/img/look-08-sm.webp 640w, assets/img/look-08.webp 1200w" sizes="(max-width: 900px) 70vw, 22rem" alt="Bride in floral jewellery and a pink mirror-work outfit, in daylight" loading="lazy" decoding="async" style="object-position: center 16%;"></div></div>
+        <div class="scene-copy">
+          <p class="scene-time">That afternoon</p>
+          <h3 class="scene-headline">Henna, songs and long afternoons.</h3>
+          <p class="scene-text">Hours of sitting still while the henna dries, then the dancing starts. Soft colour, flowers in the hair, and makeup that lasts from the first design to the last song.</p>
+          <ul class="scene-notes"><li>Long-wear base</li><li>Soft, fresh colour</li><li>Flowers in the hair</li></ul>
+          <a href="contact.html?for=Mehendi%20look" class="btn-fill scene-cta">Plan my Mehendi look <span class="arrow">&rarr;</span></a>
+        </div>
+      </article>
+
+      <article class="scene" id="sc-sangeet" role="tabpanel" aria-labelledby="tab-sangeet" hidden>
+        <div class="scene-photo"><div class="ph arch"><img src="assets/img/look-02-sm.webp" srcset="assets/img/look-02-sm.webp 640w, assets/img/look-02.webp 1200w" sizes="(max-width: 900px) 70vw, 22rem" alt="Close-up of a bride with defined eyes and gold kundan jewellery" loading="lazy" decoding="async" style="object-position: center 14%;"></div></div>
+        <div class="scene-copy">
+          <p class="scene-time">The night before</p>
+          <h3 class="scene-headline">The night you dance.</h3>
+          <p class="scene-text">Lights, a stage and every cousin with a choreography. The glam goes up: defined eyes, a glow that catches the light, and a base that stays put under the lights.</p>
+          <ul class="scene-notes"><li>Sweat-proof base</li><li>Statement eyes</li><li>A glow that photographs</li></ul>
+          <a href="contact.html?for=Sangeet%20look" class="btn-fill scene-cta">Plan my Sangeet look <span class="arrow">&rarr;</span></a>
+        </div>
+      </article>
+
+      <article class="scene" id="sc-pheras" role="tabpanel" aria-labelledby="tab-pheras" hidden>
+        <div class="scene-photo"><div class="ph arch"><img src="assets/img/look-06-sm.webp" srcset="assets/img/look-06-sm.webp 640w, assets/img/look-06.webp 1200w" sizes="(max-width: 900px) 70vw, 22rem" alt="Bride in red with a large maang tikka, nath and kundan necklaces" loading="lazy" decoding="async" style="object-position: center 12%;"></div></div>
+        <div class="scene-copy">
+          <p class="scene-time">The wedding</p>
+          <h3 class="scene-headline">Seven rounds of the fire.</h3>
+          <p class="scene-text">The look we planned together at your trial, finished in the studio light and checked against the camera, so it holds through the pheras, the vidaai and every photograph after.</p>
+          <ul class="scene-notes"><li>Planned at your trial</li><li>Traditional, HD or Airbrush</li><li>Finished in studio light</li></ul>
+          <a href="contact.html?for=Bridal%20makeup" class="btn-fill scene-cta">Plan my wedding look <span class="arrow">&rarr;</span></a>
+        </div>
+      </article>
+
+      <article class="scene" id="sc-reception" role="tabpanel" aria-labelledby="tab-reception" hidden>
+        <div class="scene-photo"><div class="ph arch"><img src="assets/img/look-03-sm.webp" srcset="assets/img/look-03-sm.webp 640w, assets/img/look-03.webp 1200w" sizes="(max-width: 900px) 70vw, 22rem" alt="Bride in an ivory lehenga with silver jewellery and a nath" loading="lazy" decoding="async" style="object-position: center 14%;"></div></div>
+        <div class="scene-copy">
+          <p class="scene-time">The evening after</p>
+          <h3 class="scene-headline">Chandeliers and a softer glow.</h3>
+          <p class="scene-text">After the rituals, the party. Softer glam for ivory and pastels: a look that feels lighter than the wedding, and just as finished.</p>
+          <ul class="scene-notes"><li>Soft glam</li><li>HD finish</li><li>Pastel-friendly colour</li></ul>
+          <a href="contact.html?for=Reception%20look" class="btn-fill scene-cta">Plan my Reception look <span class="arrow">&rarr;</span></a>
+        </div>
+      </article>
+    </div>
+
+    <div class="cel-arrows">
+      <button class="cel-arrow" type="button" data-cel-dir="-1" aria-label="Previous function">&larr;</button>
+      <button class="cel-arrow" type="button" data-cel-dir="1" aria-label="Next function">&rarr;</button>
     </div>
   </section>
 
@@ -282,19 +372,26 @@
     <p class="watermark-inline" aria-hidden="true">Namita</p>
   </section>
 
-  <!-- ============ CTA BAND ============ -->
+  <!-- ============ CTA BAND: a save-the-date card ============ -->
   <section class="cta-band">
-    <p class="eyebrow reveal">Ready when you are</p>
-    <h2 class="cta-heading reveal">Your date <em>won't wait.</em></h2>
-    <p class="cta-sub reveal">Wedding season books out months ahead. Pick your date and I will check it for you, no strings attached.</p>
-    <form class="date-check reveal">
-      <label class="dc-label" for="dcHome">Your wedding date</label>
-      <div class="dc-row">
-        <input type="date" id="dcHome" name="date" required>
-        <button type="submit" class="btn-fill">Check on WhatsApp <span class="arrow">&rarr;</span></button>
-      </div>
-      <p class="dc-alt">No date yet? <a href="https://wa.me/919235112453?text=Hi%20Namita%2C%20I%27d%20like%20to%20ask%20about%20bridal%20makeup." target="_blank" rel="noopener">Just say hi on WhatsApp</a></p>
-    </form>
+    <div class="std-card reveal">
+      <span class="std-corner std-tl" aria-hidden="true"></span>
+      <span class="std-corner std-tr" aria-hidden="true"></span>
+      <span class="std-corner std-bl" aria-hidden="true"></span>
+      <span class="std-corner std-br" aria-hidden="true"></span>
+      <p class="std-blessing" lang="hi">॥ शुभ विवाह ॥</p>
+      <p class="eyebrow">Save the date</p>
+      <h2 class="cta-heading">Your date <em>won't wait.</em></h2>
+      <p class="cta-sub">Wedding season books out months ahead. Pick your date and I will check it for you, no strings attached.</p>
+      <form class="date-check">
+        <label class="dc-label" for="dcHome">Your wedding date</label>
+        <div class="dc-row">
+          <input type="date" id="dcHome" name="date" required>
+          <button type="submit" class="btn-fill">Check on WhatsApp <span class="arrow">&rarr;</span></button>
+        </div>
+        <p class="dc-alt">No date yet? <a href="https://wa.me/919235112453?text=Hi%20Namita%2C%20I%27d%20like%20to%20ask%20about%20bridal%20makeup." target="_blank" rel="noopener">Just say hi on WhatsApp</a></p>
+      </form>
+    </div>
   </section>
 
 </main>
@@ -331,6 +428,7 @@
 <script src="js/reveal.js"></script>
 <script src="js/portfolio-data.js"></script>
 <script src="js/gallery.js"></script>
+<script src="js/celebrations.js"></script>
 <script src="js/main.js"></script>
 </body>
 </html>
