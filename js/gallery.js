@@ -377,7 +377,6 @@
       if (!ngm().openWhatsApp) return;
       e.preventDefault();
       ngm().openWhatsApp(ui.book.href);
-      if (ngm().celebrate) ngm().celebrate();
     });
 
     ui.save.addEventListener('click', () => {

@@ -617,7 +617,7 @@ html.js .reveal.in {
 
 /* ============ PAGE HEADER (subpages) ============ */
 .page-header {
-  padding: clamp(12rem, 15vw, 13.5rem) var(--pad) 0; /* room for the toran */
+  padding: clamp(9rem, 15vw, 13rem) var(--pad) 0;
 }
 .page-heading {
   font-family: var(--display);
@@ -2391,37 +2391,6 @@ html:not(.js) .step::before { transform: scaleX(1); }
   --chikan: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='96' height='96' viewBox='0 0 96 96'%3E%3Cg fill='none' stroke='%23FFFFFF' stroke-width='1.3' stroke-linecap='round'%3E%3Cpath d='M24 24c-3-6-2-10 0-12 2 2 3 6 0 12z'/%3E%3Cpath d='M24 24c-3-6-2-10 0-12 2 2 3 6 0 12z' transform='rotate(72 24 24)'/%3E%3Cpath d='M24 24c-3-6-2-10 0-12 2 2 3 6 0 12z' transform='rotate(144 24 24)'/%3E%3Cpath d='M24 24c-3-6-2-10 0-12 2 2 3 6 0 12z' transform='rotate(216 24 24)'/%3E%3Cpath d='M24 24c-3-6-2-10 0-12 2 2 3 6 0 12z' transform='rotate(288 24 24)'/%3E%3Ccircle cx='24' cy='24' r='1.6'/%3E%3Cpath d='M26 36c4 8 12 14 22 16' stroke-dasharray='0.1 3.2' stroke-width='1.8'/%3E%3Cpath d='M34 44c3-5 8-6 11-4-3 4-8 6-11 4z'/%3E%3Cpath d='M70 68c-2-4-1.5-7 0-8.5 1.5 1.5 2 4.5 0 8.5z'/%3E%3Cpath d='M70 68c-2-4-1.5-7 0-8.5 1.5 1.5 2 4.5 0 8.5z' transform='rotate(72 70 68)'/%3E%3Cpath d='M70 68c-2-4-1.5-7 0-8.5 1.5 1.5 2 4.5 0 8.5z' transform='rotate(144 70 68)'/%3E%3Cpath d='M70 68c-2-4-1.5-7 0-8.5 1.5 1.5 2 4.5 0 8.5z' transform='rotate(216 70 68)'/%3E%3Cpath d='M70 68c-2-4-1.5-7 0-8.5 1.5 1.5 2 4.5 0 8.5z' transform='rotate(288 70 68)'/%3E%3Ccircle cx='70' cy='68' r='1.2'/%3E%3C/g%3E%3C/svg%3E");
 }
 
-/* ---------- toran: the marigold garland over each page's doorway ---------- */
-.hero,
-.page-header { position: relative; }
-.toran {
-  position: absolute;
-  top: 4.9rem;
-  left: 0;
-  right: 0;
-  z-index: 3;
-  height: 108px;
-  overflow: hidden;
-  pointer-events: none;
-  filter: drop-shadow(0 5px 5px rgba(110, 50, 0, 0.18));
-  animation: toranIn 1.4s var(--ease-out) both;
-  animation-delay: calc(var(--intro-delay, 0s) + 0.1s);
-}
-.toran svg { display: block; overflow: visible; }
-@keyframes toranIn {
-  from { opacity: 0; transform: translateY(-24px); }
-  to   { opacity: 1; transform: none; }
-}
-.toran-drop {
-  transform-box: fill-box;
-  transform-origin: 50% 0;
-  animation: toranSway 4.5s ease-in-out infinite alternate;
-}
-@keyframes toranSway {
-  from { transform: rotate(-3deg); }
-  to   { transform: rotate(3deg); }
-}
-
 /* ---------- jaali texture on the velvet sections ---------- */
 .looks::before {
   content: "";
@@ -2432,16 +2401,6 @@ html:not(.js) .step::before { transform: scaleX(1); }
   pointer-events: none;
 }
 .looks > * { position: relative; }
-
-/* ---------- petal shower ---------- */
-.petal-canvas {
-  position: fixed;
-  inset: 0;
-  z-index: 95;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-}
 
 /* ============ THE CELEBRATIONS (home) ============
    One section that changes with the function: palette, decoration,
@@ -2514,26 +2473,11 @@ html:not(.js) .step::before { transform: scaleX(1); }
 .celebrations[data-scene="pheras"] .decor-pheras,
 .celebrations[data-scene="reception"] .decor-reception { opacity: 1; }
 
-/* haldi: morning sun and drifting marigold petals */
+/* haldi: morning sun */
 .decor-haldi {
   background:
     radial-gradient(55% 45% at 88% 8%, rgba(255, 246, 205, 0.95), transparent 62%),
     radial-gradient(45% 45% at 5% 95%, rgba(240, 138, 28, 0.22), transparent 70%);
-}
-.hp {
-  position: absolute;
-  width: var(--hp-size, 12px);
-  height: calc(var(--hp-size, 12px) * 0.62);
-  border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
-  background: linear-gradient(120deg, #F8B13A, #D9690E);
-  opacity: 0.75;
-  transform: rotate(var(--hp-rot, 0deg));
-  animation: hpDrift 12s ease-in-out infinite alternate;
-}
-.hp-yellow { background: linear-gradient(120deg, #FCD86A, #E4A11B); }
-@keyframes hpDrift {
-  from { transform: translate(0, 0) rotate(var(--hp-rot, 0deg)); }
-  to   { transform: translate(18px, 26px) rotate(calc(var(--hp-rot, 0deg) + 140deg)); }
 }
 
 /* mehendi: henna line-work */
@@ -2653,18 +2597,6 @@ html:not(.js) .step::before { transform: scaleX(1); }
   cursor: pointer;
   transition: color 0.4s;
 }
-.cel-bead {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 15px;
-  height: 15px;
-  border-radius: 50%;
-  background: radial-gradient(circle at 40% 35%, #FFC34D, #F08A1C 55%, #C45A0C);
-  box-shadow: 0 0 0 3px var(--sc-bg);
-  transform: scale(0.7);
-  transition: transform 0.4s var(--ease-out), box-shadow 0.9s;
-}
 .cel-dev {
   font-family: var(--deva);
   font-size: 1rem;
@@ -2685,10 +2617,20 @@ html:not(.js) .step::before { transform: scaleX(1); }
 }
 .cel-tab:hover { color: var(--sc-ink); }
 .cel-tab[aria-selected="true"] { color: var(--sc-ink); }
-.cel-tab[aria-selected="true"] .cel-bead {
-  transform: scale(1.25);
-  box-shadow: 0 0 0 3px var(--sc-bg), 0 0 14px rgba(255, 180, 60, 0.75);
+/* the chosen function's stretch of the thread turns solid */
+.cel-tab::after {
+  content: "";
+  position: absolute;
+  top: 6px;
+  left: 0;
+  width: 2.5rem;
+  height: 3px;
+  background: var(--sc-accent);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.45s var(--ease-out), background 0.9s;
 }
+.cel-tab[aria-selected="true"]::after { transform: scaleX(1); }
 
 .cel-stage {
   position: relative;
@@ -2941,11 +2883,8 @@ html:not(.js) .step::before { transform: scaleX(1); }
   .site-header.menu-open { background: var(--bg); }
 
   .hero { grid-template-columns: 1fr; min-height: 0; }
-  /* tight on phones so the bride's face makes the first screen, with
-     just enough room for the toran */
-  .hero-text { padding-top: 8.4rem; padding-bottom: 2rem; }
-  .toran { top: 4.5rem; height: 62px; }
-  .page-header { padding-top: 9rem; }
+  /* tighter on phones so the bride's face makes the first screen */
+  .hero-text { padding-top: 6.5rem; padding-bottom: 2rem; }
 
   .cel-nav {
     overflow-x: auto;
@@ -3133,5 +3072,5 @@ html:not(.js) .step::before { transform: scaleX(1); }
   .step::before { transform: none !important; }
   .arch-dots.is-running .arch-dot.is-active::after { animation: none; }
   .view-cursor { display: none; }
-  .toran, .toran-drop, .hp, .fairy-bulb, .fire, .sparkle { animation: none; }
+  .fairy-bulb, .fire, .sparkle { animation: none; }
 }

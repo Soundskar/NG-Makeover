@@ -1,6 +1,6 @@
 // Namita Garg Makeover, "Five functions. Five looks." (home page).
 // A walk through the wedding: each function changes the section's palette
-// and its decoration (marigold petals, henna, fairy lights, the sacred fire,
+// and its background (morning light, henna, fairy lights, the sacred fire,
 // chikankari), and shows the look and approach for that function.
 // Tabs follow the ARIA tabs pattern: arrow keys, Home and End work.
 
@@ -14,28 +14,10 @@
   const scenes = [...section.querySelectorAll('.scene')];
   const stage = section.querySelector('.cel-stage');
   let current = 0;
-  let pherasSeen = false;
 
   const rand = (a, b) => a + Math.random() * (b - a);
 
   // ---------- decoration for each scene ----------
-  // Haldi: marigold petals drifting in the morning light
-  const haldi = section.querySelector('.decor-haldi');
-  if (haldi) {
-    for (let i = 0; i < 16; i++) {
-      const p = document.createElement('span');
-      p.className = 'hp';
-      p.style.left = `${rand(2, 98).toFixed(1)}%`;
-      p.style.top = `${rand(0, 92).toFixed(1)}%`;
-      p.style.setProperty('--hp-rot', `${rand(0, 360).toFixed(0)}deg`);
-      p.style.setProperty('--hp-size', `${rand(9, 17).toFixed(0)}px`);
-      p.style.animationDelay = `${rand(-12, 0).toFixed(1)}s`;
-      p.style.animationDuration = `${rand(9, 15).toFixed(1)}s`;
-      if (i % 3 === 0) p.classList.add('hp-yellow');
-      haldi.appendChild(p);
-    }
-  }
-
   // Sangeet: strings of fairy lights swagged across the night
   const sangeet = section.querySelector('.decor-sangeet');
   if (sangeet) {
@@ -106,12 +88,6 @@
     });
     if (focus) tabs[current].focus({ preventScroll: true });
     if (nav.scrollWidth > nav.clientWidth) keepTabInView(tabs[current]);
-
-    // phool barsana: petals fall the first time the pheras come round
-    if (key === 'pheras' && !pherasSeen) {
-      pherasSeen = true;
-      if (window.NGM && window.NGM.celebrate) window.NGM.celebrate();
-    }
   };
 
   tabs.forEach((tab, n) => tab.addEventListener('click', () => show(n)));
