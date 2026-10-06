@@ -125,6 +125,12 @@
   };
 
   const renderPill = (bump) => {
+    const href = `https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(shortlistMessage())}`;
+    // phones show the count in main.js's action bar instead of this pill
+    const state = { count: shortlist.size, href };
+    window.NGM_SHORTLIST = state;
+    if (bump) document.dispatchEvent(new CustomEvent('ngm:shortlist', { detail: state }));
+
     // only on pages that show looks
     if (!document.querySelector('#looksStrip, #portfolioGrid')) return;
     if (!pill) {
@@ -140,7 +146,7 @@
     }
     const n = shortlist.size;
     pill.innerHTML = `${HEART}<span>${n} saved &middot; Send to Namita</span>`;
-    pill.href = `https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(shortlistMessage())}`;
+    pill.href = href;
     pill.setAttribute('aria-label', `Send my ${n} saved look${n === 1 ? '' : 's'} to Namita on WhatsApp`);
     pill.classList.toggle('show', n > 0);
     pill.tabIndex = n > 0 ? 0 : -1;
@@ -377,10 +383,11 @@
       const item = viewList[viewIndex];
       if (shortlist.has(item.id)) {
         shortlist.delete(item.id);
-        notify('Removed from your shortlist');
       } else {
         shortlist.add(item.id);
-        notify(shortlist.size === 1 ? 'Saved. Send your shortlist to Namita when you are ready.' : 'Saved to your shortlist');
+        // the button itself says "Saved"; only the very first save needs
+        // a word on where the shortlist goes
+        if (shortlist.size === 1) notify('Saved. Send your shortlist to Namita whenever you are ready.');
       }
       saveShortlist();
       updateSaveButton(item);
@@ -551,12 +558,19 @@
       captionText.classList.add('swap');
     }
 
+    // Anything that moves on its own for more than five seconds needs a way
+    // to stop it: a pause button, plus a pause while the pointer or keyboard
+    // focus is on the photo (someone is looking at it).
+    const pauseBtn = heroArch.querySelector('.arch-pause');
+    let userPaused = false;
+    let lookingPaused = false;
+
     // the active dot fills over SLIDE_MS (CSS), so it shows when the next
     // look is coming; .is-running starts that fill in step with the timer
     function restart() {
       clearInterval(timer);
       dotsWrap.classList.remove('is-running');
-      if (reducedMotion || slides.length < 2) return;
+      if (reducedMotion || slides.length < 2 || userPaused || lookingPaused) return;
       void dotsWrap.offsetWidth;
       dotsWrap.classList.add('is-running');
       timer = setInterval(() => {
@@ -579,8 +593,25 @@
         media.appendChild(img);
         slides.push(img);
       });
+      if (pauseBtn && !reducedMotion && slides.length > 1) pauseBtn.hidden = false;
       restart();
     };
+
+    if (pauseBtn) {
+      pauseBtn.addEventListener('click', () => {
+        userPaused = !userPaused;
+        pauseBtn.setAttribute('aria-pressed', String(userPaused));
+        pauseBtn.setAttribute('aria-label', userPaused ? 'Play slideshow' : 'Pause slideshow');
+        restart();
+      });
+    }
+    const frameEl = heroArch.querySelector('.arch-frame');
+    const look = (on) => {
+      lookingPaused = on;
+      restart();
+    };
+    frameEl.addEventListener('mouseenter', () => look(true));
+    frameEl.addEventListener('mouseleave', () => look(false));
     if (document.readyState === 'complete') addSlides();
     else window.addEventListener('load', addSlides, { once: true });
   }

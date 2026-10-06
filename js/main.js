@@ -4,17 +4,7 @@ document.documentElement.classList.add('js');
 
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 const finePointer = window.matchMedia('(pointer: fine)').matches;
-
-// sessionStorage throws when the browser blocks site storage; without this
-// guard one throw stops the script and every .reveal section stays hidden
-const store = {
-  get(key) {
-    try { return window.sessionStorage.getItem(key); } catch (e) { return null; }
-  },
-  set(key, value) {
-    try { window.sessionStorage.setItem(key, value); } catch (e) { /* storage blocked */ }
-  }
-};
+const phoneLayout = window.matchMedia('(max-width: 900px)');
 
 // ---------- Shared helpers (also used by gallery.js via window.NGM) ----------
 const WA_NUMBER = '919235112453';
@@ -87,39 +77,6 @@ window.NGM = { waUrl, openWhatsApp, toast, prettyDate };
   });
 });
 
-// ---------- Intro veil: velvet curtain with the name, then lift ----------
-if (!reducedMotion && !store.get('ngm-intro-done')) {
-  document.documentElement.classList.add('with-intro');
-
-  const veil = document.createElement('div');
-  veil.className = 'intro-veil';
-  veil.setAttribute('aria-hidden', 'true');
-  const name = document.createElement('div');
-  name.className = 'intro-name';
-  'Namita Garg'.split('').forEach((ch, i) => {
-    const s = document.createElement('span');
-    s.textContent = ch === ' ' ? String.fromCharCode(160) : ch;
-    s.style.animationDelay = `${0.1 + i * 0.04}s`;
-    name.appendChild(s);
-  });
-  veil.appendChild(name);
-  document.body.appendChild(veil);
-
-  const finishIntro = () => {
-    if (veil.classList.contains('lift')) return;
-    veil.classList.add('lift');
-    store.set('ngm-intro-done', '1');
-    setTimeout(() => veil.remove(), 900);
-  };
-
-  setTimeout(finishIntro, 950);
-  // a click skips straight to the page
-  veil.addEventListener('click', () => {
-    document.documentElement.style.setProperty('--intro-delay', '0s');
-    finishIntro();
-  });
-}
-
 // ---------- Sticky header + scroll progress ----------
 const header = document.getElementById('siteHeader');
 const navToggle = document.getElementById('navToggle');
@@ -129,14 +86,15 @@ const progressBar = document.createElement('div');
 progressBar.className = 'scroll-progress';
 document.body.appendChild(progressBar);
 
-// the header tucks away while reading down the page and comes back as
-// soon as the visitor scrolls up, where they usually look for the menu
+// On phones the header tucks away while reading down the page and comes
+// back on the way up (the action bar keeps "Check your date" in reach).
+// On desktop it stays put: there is room, and it carries the main button.
 let lastScrollY = window.scrollY;
 
 const onScroll = () => {
   const y = window.scrollY;
   header.classList.toggle('scrolled', y > 40);
-  if (mainNav.classList.contains('open') || y < 480) {
+  if (!phoneLayout.matches || mainNav.classList.contains('open') || y < 480) {
     header.classList.remove('tucked');
   } else if (y > lastScrollY + 6) {
     header.classList.add('tucked');
@@ -434,165 +392,90 @@ if (heroMedia && heroSection && finePointer && !reducedMotion) {
   });
 }
 
-// ---------- WhatsApp nudge bubble (once per session) ----------
-const waHref = waUrl('Hi Namita, I\'d like to ask about bridal makeup.');
+// ---------- Action bar (phones; hidden on desktop by CSS) ----------
+// One sticky bar in the thumb zone, instead of a chat bubble, a booking
+// bar and a floating button competing for the same corner. It appears once
+// the page's first call to action has scrolled away, and steps aside while
+// the page's own booking form or call to action is on screen, so the same
+// button never shows twice. Saved looks (gallery.js) show up in it too.
+const HEART_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20.5s-7.5-4.6-9.3-9.2C1.4 7.9 3.6 4.5 7 4.5c2 0 3.6 1.1 5 3 1.4-1.9 3-3 5-3 3.4 0 5.6 3.4 4.3 6.8-1.8 4.6-9.3 9.2-9.3 9.2z"/></svg>';
 
-if (!store.get('ngm-bubble-seen')) {
-  const bubble = document.createElement('div');
-  bubble.className = 'wa-bubble';
-  bubble.setAttribute('role', 'status');
-  bubble.innerHTML =
-    '<button class="wa-bubble-close" type="button" aria-label="Dismiss">&times;</button>' +
-    '<p>Hi! I\'m Namita. Wondering if your date is free? Just ask.</p>' +
-    `<a href="${waHref}" target="_blank" rel="noopener">Say hi on WhatsApp</a>`;
-  document.body.appendChild(bubble);
-
-  const hideBubble = () => {
-    bubble.classList.remove('show');
-    store.set('ngm-bubble-seen', '1');
-  };
-
-  setTimeout(() => bubble.classList.add('show'), 6000);
-  setTimeout(hideBubble, 26000);
-  bubble.querySelector('.wa-bubble-close').addEventListener('click', hideBubble);
-  bubble.querySelector('a').addEventListener('click', hideBubble);
-}
-
-// ---------- Booking bar (all pages except the enquiry page) ----------
-if (!form && !store.get('ngm-bar-dismissed')) {
+if (!form) {
   const onAcademy = /academy/i.test(location.pathname);
+  const waIcon = (document.querySelector('.whatsapp-float svg') || {}).outerHTML || '';
+  const waText = onAcademy
+    ? 'Hi Namita, I\'d like to ask about your academy courses.'
+    : 'Hi Namita, I\'d like to ask about bridal makeup.';
+
   const bar = document.createElement('div');
-  bar.className = 'booking-bar';
-  bar.setAttribute('role', 'complementary');
-  bar.setAttribute('aria-label', 'Booking reminder');
-  bar.innerHTML = onAcademy
-    ? '<p><strong>Small batches, limited seats.</strong><span> The next batch fills quickly.</span></p>' +
-      '<a href="contact.html?for=Academy%20admissions" class="bar-cta">Ask about admissions</a>' +
-      '<button class="bar-close" type="button" aria-label="Dismiss">&times;</button>'
-    : '<p><strong>Wedding season fills fast.</strong><span> Dates are first come, first served.</span></p>' +
-      '<a href="contact.html" class="bar-cta">Check your date</a>' +
-      '<button class="bar-close" type="button" aria-label="Dismiss">&times;</button>';
+  bar.className = 'action-bar';
+  bar.setAttribute('role', 'region');
+  bar.setAttribute('aria-label', 'Quick contact');
+  bar.innerHTML =
+    `<a class="ab-wa" href="${waUrl(waText)}" target="_blank" rel="noopener" aria-label="Chat on WhatsApp">${waIcon}</a>` +
+    '<a class="ab-saved" href="#" target="_blank" rel="noopener" hidden></a>' +
+    (onAcademy
+      ? '<a class="ab-main" href="contact.html?for=Academy%20admissions">Ask about admissions <span class="arrow" aria-hidden="true">&rarr;</span></a>'
+      : '<a class="ab-main" href="contact.html">Check your date <span class="arrow" aria-hidden="true">&rarr;</span></a>');
   document.body.appendChild(bar);
 
-  let barShown = false;
-
-  window.addEventListener('scroll', () => {
-    const max = document.documentElement.scrollHeight - window.innerHeight;
-    if (!barShown && max > 0 && window.scrollY / max > 0.5) {
-      barShown = true;
-      bar.classList.add('show');
-      document.body.classList.add('bar-show');
-    }
-  }, { passive: true });
-
-  bar.querySelector('.bar-close').addEventListener('click', () => {
-    bar.classList.remove('show');
-    document.body.classList.remove('bar-show');
-    store.set('ngm-bar-dismissed', '1');
+  // WhatsApp links go through openWhatsApp so in-app browsers still get there
+  bar.querySelectorAll('.ab-wa, .ab-saved').forEach((link) => {
+    link.addEventListener('click', (e) => {
+      e.preventDefault();
+      openWhatsApp(link.href);
+    });
   });
-}
 
-// ---------- Hero cursor card: mini slideshow beside the pointer (index only) ----------
-const cursorCard = document.getElementById('cursorCard');
-
-if (cursorCard && heroSection && !reducedMotion) {
-  const ccImgs = [...cursorCard.querySelectorAll('.cc-img')];
-
-  let ccIndex = 0;
-  let ccTargetX = 0, ccTargetY = 0;
-  let ccX = 0, ccY = 0;
-  let ccSwapX = 0, ccSwapY = 0;
-  let ccActive = false;
-  let ccRaf = null;
-  let ccLoaded = false;
-
-  // the card's photos load on first use, not with the page
-  const ccLoad = () => {
-    if (ccLoaded) return;
-    ccLoaded = true;
-    ccImgs.forEach((el) => {
-      if (el.dataset.bg) el.style.backgroundImage = `url('${el.dataset.bg}')`;
-    });
-  };
-
-  const ccTick = () => {
-    ccX += (ccTargetX - ccX) * 0.12;
-    ccY += (ccTargetY - ccY) * 0.12;
-    cursorCard.style.transform = `translate3d(${ccX.toFixed(1)}px, ${ccY.toFixed(1)}px, 0) translate(-50%, -50%)`;
-    if (ccActive || Math.abs(ccTargetX - ccX) + Math.abs(ccTargetY - ccY) > 0.5) {
-      ccRaf = requestAnimationFrame(ccTick);
-    } else {
-      ccRaf = null;
+  const saved = bar.querySelector('.ab-saved');
+  const syncSaved = (state, bump) => {
+    const n = state ? state.count : 0;
+    saved.hidden = n === 0;
+    if (!n) return;
+    saved.innerHTML = `${HEART_ICON}<span>${n}</span>`;
+    saved.href = state.href;
+    saved.setAttribute('aria-label', `Send my ${n} saved look${n === 1 ? '' : 's'} to Namita on WhatsApp`);
+    if (bump) {
+      saved.classList.remove('bump');
+      void saved.offsetWidth;
+      saved.classList.add('bump');
     }
   };
+  syncSaved(window.NGM_SHORTLIST, false);
+  document.addEventListener('ngm:shortlist', (e) => syncSaved(e.detail, true));
 
-  // position the target from a viewport point; hero rect is read live so
-  // the card stays glued to the finger even while the page scrolls
-  const ccAim = (clientX, clientY, offsetX, offsetY) => {
-    const r = heroSection.getBoundingClientRect();
-    ccTargetX = clientX - r.left + offsetX;
-    ccTargetY = clientY - r.top + offsetY;
+  const firstCta = document.querySelector('.hero-actions, .page-header');
+  const pageCtas = [...document.querySelectorAll('.cta-band, .date-check, .site-footer')];
+  let pastFirst = !firstCta;
+  let ctaInView = false;
+
+  const update = () => {
+    const show = pastFirst && !ctaInView;
+    bar.classList.toggle('show', show);
+    document.body.classList.toggle('ab-on', show);
   };
 
-  const ccShow = (swapDist) => {
-    ccLoad();
-    if (!ccActive) {
-      ccActive = true;
-      ccX = ccTargetX;
-      ccY = ccTargetY;
-      ccSwapX = ccTargetX;
-      ccSwapY = ccTargetY;
-      cursorCard.classList.add('show');
+  if ('IntersectionObserver' in window) {
+    if (firstCta) {
+      new IntersectionObserver(([entry]) => {
+        pastFirst = !entry.isIntersecting && entry.boundingClientRect.top < 0;
+        update();
+      }).observe(firstCta);
     }
-    if (Math.hypot(ccTargetX - ccSwapX, ccTargetY - ccSwapY) > swapDist) {
-      ccSwapX = ccTargetX;
-      ccSwapY = ccTargetY;
-      ccImgs[ccIndex].classList.remove('is-active');
-      ccIndex = (ccIndex + 1) % ccImgs.length;
-      ccImgs[ccIndex].classList.add('is-active');
-    }
-    if (!ccRaf) ccRaf = requestAnimationFrame(ccTick);
-  };
-
-  const ccHide = () => {
-    ccActive = false;
-    cursorCard.classList.remove('show');
-  };
-
-  // the card never appears over the arch photo, where it would only
-  // cover the bride
-  const arch = heroSection.querySelector('.hero-arch');
-
-  // desktop: card floats to the right of the mouse cursor
-  if (finePointer) {
-    heroSection.addEventListener('pointermove', (e) => {
-      if (e.pointerType !== 'mouse') return;
-      // step aside over the photo and over anything clickable
-      if ((arch && arch.contains(e.target)) || e.target.closest('a, button')) {
-        ccHide();
-        return;
-      }
-      ccAim(e.clientX, e.clientY, 90, 12);
-      ccShow(150);
-    });
-    heroSection.addEventListener('pointerleave', ccHide);
+    const inView = new Set();
+    const ctaWatch = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) inView.add(entry.target);
+        else inView.delete(entry.target);
+      });
+      ctaInView = inView.size > 0;
+      update();
+    }, { rootMargin: '0px 0px -12% 0px' });
+    pageCtas.forEach((el) => ctaWatch.observe(el));
+  } else {
+    pastFirst = true;
+    update();
   }
-
-  // touch: card rides above the finger during drags over the hero.
-  // Listeners are passive so scrolling is never blocked; a plain tap
-  // (touchstart with no movement) primes the position but shows nothing.
-  heroSection.addEventListener('touchstart', (e) => {
-    ccAim(e.touches[0].clientX, e.touches[0].clientY, 0, -100);
-    ccX = ccTargetX;
-    ccY = ccTargetY;
-  }, { passive: true });
-  heroSection.addEventListener('touchmove', (e) => {
-    if (arch && arch.contains(e.target)) return;
-    ccAim(e.touches[0].clientX, e.touches[0].clientY, 0, -100);
-    ccShow(110);
-  }, { passive: true });
-  heroSection.addEventListener('touchend', ccHide);
-  heroSection.addEventListener('touchcancel', ccHide);
 }
 
 // ---------- Course module accordions, one open at a time (academy only) ----------
