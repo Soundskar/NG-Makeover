@@ -3,6 +3,19 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script>
+  // Burn-away reveal (js/reveal.js): once per visit, never for visitors who
+  // ask for reduced motion. Runs before the first paint so the velvet cover
+  // is already up when the page appears.
+  (function () {
+    try {
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+      if (sessionStorage.getItem('ngm-revealed')) return;
+      sessionStorage.setItem('ngm-revealed', '1');
+      document.documentElement.classList.add('burn-pending', 'with-intro');
+    } catch (e) { /* storage blocked: skip the reveal */ }
+  })();
+</script>
 <title>Bridal Makeup Artist in Lucknow | Namita Garg Makeover</title>
 <meta name="description" content="Studio-only bridal makeup in Lucknow. Every bride is styled in the studio, under controlled lighting, for a flawless camera-ready finish. 15+ years of experience.">
 <link rel="canonical" href="https://namita-garg-makeover.vercel.app/">
@@ -315,6 +328,7 @@
   </svg>
 </a>
 
+<script src="js/reveal.js"></script>
 <script src="js/portfolio-data.js"></script>
 <script src="js/gallery.js"></script>
 <script src="js/main.js"></script>

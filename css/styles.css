@@ -142,6 +142,32 @@ button { font: inherit; color: inherit; }
   padding: 1rem;
 }
 
+/* ---------- burn-away reveal (home, first visit; js/reveal.js) ----------
+   The <head> script sets these classes before the first paint. The plain
+   velvet cover below is up from frame one; reveal.js swaps it for the
+   burning canvas. If the script never runs, the cover lifts itself after
+   4 seconds so the site can never get stuck behind it. */
+html.with-intro { --intro-delay: 1.1s; }
+html.burn-pending body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background:
+    radial-gradient(120% 80% at 50% 0%, var(--velvet-2) 0%, transparent 65%),
+    var(--velvet);
+  animation: burnFailsafe 0.6s ease 4s forwards;
+}
+html.burn-pending.burn-fade body::after { animation: burnFailsafe 0.6s ease forwards; }
+@keyframes burnFailsafe { to { opacity: 0; visibility: hidden; } }
+.burn-canvas {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  width: 100%;
+  height: 100%;
+}
+
 /* ---------- masked line reveals (hero & page headers) ---------- */
 
 .line {
