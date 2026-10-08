@@ -1,13 +1,13 @@
-import { AlertTriangle, CheckCircle2, ChevronLeft, ChevronRight, Lock, Plus, Share2 } from 'lucide-react';
+import { AlertTriangle, BarChart3, CheckCircle2, ChevronLeft, ChevronRight, HandCoins, Lock, Plus, Share2 } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useTeamNames } from '../../auth/auth';
 import { Empty, Loaded, Money, Page, TopBar } from '../../components/ui';
 import { useI18n, type TFn } from '../../i18n/i18n';
 import { addDays, formatDate, formatWeekday, todayIST } from '../../lib/dates';
-import { formatINR } from '../../lib/money';
+import { formatINR, sum } from '../../lib/money';
 import type { Lang } from '../../lib/types';
 import { waShareLink } from '../../lib/whatsapp';
-import { summarizeDay, useClosing, useVisits, type DaySummary } from './data';
+import { summarizeDay, useClosing, useUdhaarCollections, useUdhaarStatus, useVisits, type DaySummary } from './data';
 import { VisitCard } from './VisitCard';
 
 /** Owner: everything logged in the salon on one day, by whom, and the day's closing. */
@@ -18,7 +18,13 @@ export default function SalonDayPage() {
   const day = params.get('day') ?? today;
   const visits = useVisits(day);
   const closing = useClosing(day);
+  const collected = useUdhaarCollections(day);
+  const udhaar = useUdhaarStatus();
   const nameOf = useTeamNames();
+  const collectedToday = sum((collected.data ?? []).filter((c) => !c.voided).map((c) => c.amount));
+  const owed = (udhaar.data ?? []).filter((u) => u.outstanding > 0);
+  const owedTotal = sum(owed.map((u) => u.outstanding));
+  const owedClients = new Set(owed.map((u) => u.client_phone)).size;
 
   const go = (d: string) => setParams(d === today ? {} : { day: d }, { replace: true });
 
@@ -50,10 +56,29 @@ export default function SalonDayPage() {
                 <div className="card stack" style={{ gap: 4 }}>
                   <div className="stat-label">{t('total')}</div>
                   <Money n={s.total} className="stat-value" animate />
-                  <div className="stat-sub num">
-                    {t('cash')} {formatINR(s.cash)} · {t('upi')} {formatINR(s.upi)}{s.card ? ` · ${t('card')} ${formatINR(s.card)}` : ''}
+                  <div className="stat-sub num">{payBreakdown(s, t)}</div>
+                  <div className="stat-sub">
+                    {t('salon_entries', { n: s.count })}
+                    {s.discount > 0 ? ` · ${t('work_discounts', { amount: formatINR(s.discount) })}` : ''}
                   </div>
-                  <div className="stat-sub">{t('salon_entries', { n: s.count })}</div>
+                  {collectedToday > 0 && (
+                    <div className="stat-sub text-success num">{t('udhaar_collected_day', { amount: formatINR(collectedToday) })}</div>
+                  )}
+                </div>
+
+                <div className="stat-grid">
+                  <Link to="/salon/udhaar" className="card-link stack" style={{ gap: 2 }}>
+                    <span className={`stat-icon ${owedTotal ? 'warning' : ''}`}><HandCoins /></span>
+                    <span className="stat-label">{t('udhaar_title')}</span>
+                    <Money n={owedTotal} className={`title num ${owedTotal ? 'text-warning' : ''}`} />
+                    <span className="stat-sub small">{t('udhaar_clients', { n: owedClients })}</span>
+                  </Link>
+                  <Link to="/salon/work" className="card-link stack" style={{ gap: 2 }}>
+                    <span className="stat-icon primary"><BarChart3 /></span>
+                    <span className="stat-label">{t('work_title')}</span>
+                    <span className="title">{t('this_month')}</span>
+                    <span className="stat-sub small">{t('work_short')}</span>
+                  </Link>
                 </div>
 
                 {closing.data ? (
@@ -112,14 +137,25 @@ export function diffText(diff: number, t: TFn): string {
   return diff < 0 ? t('close_short', { amount: formatINR(-diff) }) : t('close_extra', { amount: formatINR(diff) });
 }
 
+/** 'Cash ₹1,000 · UPI ₹1,900 · Udhaar ₹500', leaving out ways nobody paid (cash and UPI always shown). */
+function payBreakdown(s: DaySummary, t: TFn): string {
+  return [
+    `${t('cash')} ${formatINR(s.cash)}`,
+    `${t('upi')} ${formatINR(s.upi)}`,
+    s.card ? `${t('card')} ${formatINR(s.card)}` : null,
+    s.udhaar ? `${t('udhaar')} ${formatINR(s.udhaar)}` : null,
+  ].filter(Boolean).join(' · ');
+}
+
 function summaryText(day: string, s: DaySummary, nameOf: (id: string) => string, t: TFn, lang: Lang): string {
   const lines = [
     `${t('summary_heading')}, ${formatDate(day, lang)}`,
     `${t('total')}: ${formatINR(s.total)} (${t('salon_entries', { n: s.count })})`,
-    `${t('cash')} ${formatINR(s.cash)} · ${t('upi')} ${formatINR(s.upi)}${s.card ? ` · ${t('card')} ${formatINR(s.card)}` : ''}`,
+    payBreakdown(s, t),
+    s.discount ? t('work_discounts', { amount: formatINR(s.discount) }) : null,
     '',
     ...[...s.byStaff.entries()].sort((a, b) => b[1].amount - a[1].amount)
       .map(([id, x]) => `${nameOf(id)}: ${formatINR(x.amount)} (${x.services})`),
   ];
-  return lines.join('\n');
+  return lines.filter((l) => l != null).join('\n');
 }

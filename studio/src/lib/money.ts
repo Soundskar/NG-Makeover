@@ -104,3 +104,28 @@ export function makePlan(total: number, parts: number, firstDate: ISODate): { du
     amount: i === 0 ? first : base,
   }));
 }
+
+/**
+ * A bill discount typed as rupees or as a percentage, in whole rupees and never
+ * more than the bill itself. 10% of ₹350 = ₹35; 15% of ₹333 = ₹50 (rounded).
+ */
+export function discountFrom(subtotal: number, kind: 'amount' | 'percent', value: number | null): number {
+  if (!value || value <= 0 || subtotal <= 0) return 0;
+  const d = kind === 'percent' ? (subtotal * Math.min(value, 100)) / 100 : value;
+  return Math.min(subtotal, Math.round(d));
+}
+
+export interface PayParts {
+  cash: number;
+  upi: number;
+  card: number;
+  udhaar: number;
+}
+
+export type SalonPayMode = keyof PayParts | 'split';
+
+/** How a salon bill was paid: all one way, or split into parts that must add up to the total. */
+export function payParts(mode: SalonPayMode, total: number, split: Partial<Record<keyof PayParts, number | null>>): PayParts {
+  if (mode !== 'split') return { cash: 0, upi: 0, card: 0, udhaar: 0, [mode]: total };
+  return { cash: split.cash ?? 0, upi: split.upi ?? 0, card: split.card ?? 0, udhaar: split.udhaar ?? 0 };
+}

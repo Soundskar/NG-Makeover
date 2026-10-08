@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   addDays, addMonths, addMonthsFractional, daysBetween, financialYear, todayIST, weekdayOf,
 } from './dates';
-import { allocatePayments, formatINR, makePlan, parseRupees, summarizeFees } from './money';
+import { allocatePayments, discountFrom, formatINR, makePlan, parseRupees, payParts, summarizeFees } from './money';
 import { normalizePhone, waLink } from './whatsapp';
 
 describe('dates', () => {
@@ -34,6 +34,24 @@ describe('dates', () => {
     expect(financialYear('2026-10-08')).toBe('26-27');
     expect(financialYear('2027-03-31')).toBe('26-27');
     expect(financialYear('2027-04-01')).toBe('27-28');
+  });
+});
+
+describe('salon bill', () => {
+  it('turns a discount in rupees or percent into whole rupees within the bill', () => {
+    expect(discountFrom(350, 'percent', 10)).toBe(35);
+    expect(discountFrom(333, 'percent', 15)).toBe(50);
+    expect(discountFrom(400, 'amount', 55)).toBe(55);
+    expect(discountFrom(400, 'amount', 900)).toBe(400);
+    expect(discountFrom(400, 'percent', 150)).toBe(400);
+    expect(discountFrom(400, 'amount', null)).toBe(0);
+    expect(discountFrom(0, 'percent', 10)).toBe(0);
+  });
+
+  it('puts the whole total on one payment mode, or takes the split as typed', () => {
+    expect(payParts('udhaar', 500, {})).toEqual({ cash: 0, upi: 0, card: 0, udhaar: 500 });
+    expect(payParts('upi', 500, { cash: 100 })).toEqual({ cash: 0, upi: 500, card: 0, udhaar: 0 });
+    expect(payParts('split', 500, { cash: 200, udhaar: 300 })).toEqual({ cash: 200, upi: 0, card: 0, udhaar: 300 });
   });
 });
 

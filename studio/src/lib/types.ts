@@ -177,10 +177,16 @@ export interface Visit {
   visit_date: string;
   client_name: string | null;
   client_phone: string | null;
+  /** What the client was charged, after any discount. */
   total: number;
+  /** Bill discount (total = sum of line prices - discount). */
+  discount: number;
+  discount_note: string | null;
   paid_cash: number;
   paid_upi: number;
   paid_card: number;
+  /** Left to pay later. */
+  paid_udhaar: number;
   note: string | null;
   created_by: string;
   created_at: string;
@@ -195,8 +201,46 @@ export interface VisitLine {
   service_name: string;
   list_price: number;
   price: number;
+  /** This line's share of the bill discount. Work counted for the person = price - discount. */
+  discount: number;
   staff_id: string;
   sort: number;
+}
+
+export type CollectMode = 'cash' | 'upi' | 'card';
+
+export interface UdhaarCollection {
+  id: string;
+  visit_id: string;
+  amount: number;
+  mode: CollectMode;
+  collected_on: string;
+  collected_by: string | null;
+  created_at: string;
+  voided: boolean;
+  void_reason: string | null;
+}
+
+export interface UdhaarStatus {
+  visit_id: string;
+  visit_date: string;
+  client_name: string | null;
+  client_phone: string | null;
+  created_by: string;
+  udhaar: number;
+  collected: number;
+  outstanding: number;
+  last_collected_on: string | null;
+}
+
+/** One service a person did (from my_work). */
+export interface WorkLine {
+  day: string;
+  service_name: string;
+  list_price: number;
+  price: number;
+  discount: number;
+  logged_at: string;
 }
 
 export interface VisitWithLines extends Visit {

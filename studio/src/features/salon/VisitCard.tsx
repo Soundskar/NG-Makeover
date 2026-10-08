@@ -55,6 +55,16 @@ export function VisitCard({ v, showCreator, canCancel }: {
           </li>
         ))}
       </ul>
+      {(v.discount > 0 || v.paid_udhaar > 0) && (
+        <div className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
+          {v.discount > 0 && (
+            <span className="badge badge-success">
+              {t('entry_discount_badge', { amount: formatINR(v.discount) })}{v.discount_note ? ` · ${v.discount_note}` : ''}
+            </span>
+          )}
+          {v.paid_udhaar > 0 && <span className="badge badge-warning">{t('entry_udhaar_badge', { amount: formatINR(v.paid_udhaar) })}</span>}
+        </div>
+      )}
       {v.voided ? (
         <span className="badge badge-danger" style={{ alignSelf: 'flex-start' }}>
           {t('entry_cancelled')}{v.void_reason ? `: ${v.void_reason}` : ''}
@@ -81,7 +91,7 @@ function CancelSheet({ visitId, onClose }: { visitId: string; onClose: () => voi
   const m = useMutation({
     mutationFn: async () => must(await supabase.rpc('void_visit', { p_id: visitId, p_reason: reason })),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['visits'] });
+      for (const k of ['visits', 'work', 'udhaar']) qc.invalidateQueries({ queryKey: [k] });
       toast({ kind: 'info', text: t('entry_cancelled') });
       onClose();
     },

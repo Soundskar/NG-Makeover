@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import {
-  AlertTriangle, CalendarCheck, CalendarClock, ChevronRight, HardDriveDownload, IndianRupee, Lock, Plus, UserPlus, Users, UserX,
+  AlertTriangle, CalendarCheck, CalendarClock, ChevronRight, HandCoins, HardDriveDownload, IndianRupee, Lock, Plus, UserPlus, Users, UserX,
 } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
@@ -12,7 +12,7 @@ import { formatINR, sum } from '../../lib/money';
 import { isScheduledOn } from '../../lib/schedule';
 import { must, supabase } from '../../lib/supabase';
 import type { Attendance } from '../../lib/types';
-import { summarizeDay, useClosing, useVisits } from '../salon/data';
+import { summarizeDay, useClosing, useUdhaarStatus, useVisits } from '../salon/data';
 import { useActiveEnrollments, useFeeStatus, useSettings } from '../students/data';
 
 export default function HomePage() {
@@ -27,6 +27,7 @@ export default function HomePage() {
   const fees = useFeeStatus(true);
   const settings = useSettings();
   const enrollments = useActiveEnrollments();
+  const udhaar = useUdhaarStatus();
   const collected = useQuery({
     queryKey: ['home', 'collected', today],
     queryFn: async () => {
@@ -77,6 +78,14 @@ export default function HomePage() {
   if (ending.length) {
     alerts.push({ key: 'ending', to: '/fees?tab=ending', icon: <CalendarCheck />, text: t('alert_ending', { n: ending.length }), tone: 'warning' });
   }
+  // Udhaar that has waited more than a week deserves a reminder.
+  const oldUdhaar = (udhaar.data ?? []).filter((u) => u.outstanding > 0 && u.visit_date <= addDays(today, -7));
+  if (oldUdhaar.length) {
+    alerts.push({
+      key: 'udhaar', to: '/salon/udhaar', icon: <HandCoins />, tone: 'warning',
+      text: t('alert_udhaar_old', { amount: formatINR(sum(oldUdhaar.map((u) => u.outstanding))) }),
+    });
+  }
   if (settings.isSuccess && hasData && (backupDays == null || backupDays >= 7)) {
     alerts.push({
       key: 'backup', to: '/more/backup', icon: <HardDriveDownload />, tone: 'warning',
@@ -112,6 +121,7 @@ export default function HomePage() {
               `${t('cash')} ${formatINR(salon.cash)}`,
               `${t('upi')} ${formatINR(salon.upi)}`,
               salon.card ? `${t('card')} ${formatINR(salon.card)}` : null,
+              salon.udhaar ? `${t('udhaar')} ${formatINR(salon.udhaar)}` : null,
               t('salon_entries', { n: salon.count }),
             ].filter(Boolean).join(' · ')
             : '…'}

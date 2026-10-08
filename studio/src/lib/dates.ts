@@ -112,3 +112,15 @@ export function formatDateTime(ts: string, lang: Lang = 'en'): string {
     day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit', timeZone: IST,
   }).format(new Date(ts));
 }
+
+/** '2026-10-01' → 'October 2026' */
+export function formatMonth(iso: ISODate, lang: Lang = 'en'): string {
+  const [y, m] = parts(iso);
+  return new Intl.DateTimeFormat(locale(lang), { month: 'long', year: 'numeric', timeZone: 'UTC' })
+    .format(new Date(Date.UTC(y, m - 1, 1)));
+}
+
+/** Last day of the month the date falls in. */
+export function monthEnd(iso: ISODate): ISODate {
+  return addDays(addMonths(monthStart(iso), 1), -1);
+}

@@ -644,6 +644,74 @@ body:has(.sheet-backdrop) .toast-wrap { top: calc(env(safe-area-inset-top, 0px) 
 }
 .tab[aria-selected="true"] { background: var(--surface); color: var(--text); box-shadow: var(--shadow); }
 
+/* ---------- salon: service picker ---------- */
+/* Categories that open to show their services (one open at a time). */
+.accordion { display: flex; flex-direction: column; gap: 10px; }
+.acc {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  box-shadow: var(--shadow); overflow: hidden; scroll-margin: 76px 0 96px;
+  transition: border-color 0.2s;
+}
+.acc.open { border-color: color-mix(in srgb, var(--primary) 45%, var(--border)); }
+.acc-head {
+  display: flex; align-items: center; gap: 12px; width: 100%; min-height: 68px; padding: 12px 16px;
+  background: none; border: 0; text-align: left; color: inherit;
+  transition: background-color 0.15s;
+}
+.acc-head:active { background: var(--surface-2); }
+.acc-head .title { font-weight: 700; font-size: 1.0625rem; line-height: 1.3; }
+.acc-head .sub { font-size: 0.875rem; color: var(--text-2); }
+.acc-chev { flex-shrink: 0; color: var(--text-2); transition: transform 0.25s var(--ease); }
+.acc.open .acc-chev { transform: rotate(180deg); color: var(--primary); }
+.acc-body { border-top: 1px solid var(--border); animation: acc-open 0.25s var(--ease); }
+.acc-body > .list-item + .list-item { border-top: 1px solid var(--border); }
+@keyframes acc-open { from { opacity: 0; transform: translateY(-6px); } }
+
+.svc { min-height: 58px; }
+.svc-add {
+  flex-shrink: 0; display: grid; place-items: center;
+  width: 34px; height: 34px; border-radius: 50%;
+  background: var(--primary-soft); color: var(--primary);
+  font-weight: 800; font-size: 0.9375rem;
+  transition: background-color 0.2s, color 0.2s;
+}
+.svc-add svg { width: 18px; height: 18px; }
+.svc-add.on { background: var(--primary); color: var(--on-primary); animation: pop-in 0.3s var(--ease); }
+.svc:active .svc-add { transform: scale(0.9); }
+
+/* Most-used tiles: a tick in the corner once picked. */
+.tile { position: relative; padding: 14px; }
+.tile.picked { border-color: var(--primary); background: color-mix(in srgb, var(--primary-soft) 55%, var(--surface)); }
+.tile-check {
+  position: absolute; top: 8px; right: 8px;
+  display: inline-flex; align-items: center; gap: 2px; min-width: 24px; height: 24px; padding: 0 6px;
+  border-radius: 12px; background: var(--primary); color: var(--on-primary);
+  font-size: 0.8125rem; font-weight: 800; justify-content: center;
+  animation: pop-in 0.3s var(--ease);
+}
+/* The Continue button gives a small nudge each time something is added. */
+.bump { animation: bump 0.35s var(--ease); }
+@keyframes bump { 40% { transform: scale(1.03); } }
+
+/* ---------- salon: the bill ---------- */
+.bill { display: flex; flex-direction: column; gap: 8px; }
+.bill-total { margin-top: 4px; padding-top: 10px; border-top: 1.5px dashed var(--border); }
+.pct-input .input { padding-left: 14px; padding-right: 36px; font-weight: 700; font-size: 1.25rem; }
+.pct-input .rupee { left: auto; right: 14px; }
+/* Four payment ways in a row, icon above the word. */
+.pay-modes .choices { grid-template-columns: repeat(4, 1fr); grid-auto-flow: row; }
+.pay-modes .choice { flex-direction: column; gap: 4px; min-height: 68px; font-size: 0.9375rem; padding: 8px 4px; }
+.pay-modes .choice svg { width: 24px; height: 24px; }
+.save-hint {
+  text-align: center; font-weight: 700; font-size: 0.9375rem; color: var(--warning);
+  animation: fade-in 0.2s;
+}
+
+/* ---------- period switcher (day / month) ---------- */
+.period { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.period .label { text-align: center; }
+.period .label strong { display: block; font-weight: 700; }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }

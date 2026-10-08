@@ -1,6 +1,8 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Banknote, Check, ChevronDown, CreditCard, Pencil, Plus, Smartphone, Split, X } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import {
+  AlertCircle, Banknote, Check, ChevronDown, CreditCard, HandCoins, Pencil, Plus, Smartphone, Split, Tag, X,
+} from 'lucide-react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useMe, useTeam } from '../../auth/auth';
 import {
@@ -9,11 +11,12 @@ import {
 import { errorText, useI18n } from '../../i18n/i18n';
 import { formatDate, todayIST } from '../../lib/dates';
 import { haptic } from '../../lib/haptics';
-import { formatINR, sum } from '../../lib/money';
+import { discountFrom, formatINR, payParts, sum, type PayParts } from '../../lib/money';
 import { must, supabase } from '../../lib/supabase';
-import { nameOf, type Service } from '../../lib/types';
+import { nameOf, type Service, type ServiceCategory } from '../../lib/types';
 import { normalizePhone } from '../../lib/whatsapp';
-import { needsPrice, priceLabel, useFrequentServices, useServiceCatalog } from './data';
+import { needsPrice, priceLabel, useFrequentServices, useServiceCatalog, useUdhaarForPhone } from './data';
+import { CollectSheet } from './UdhaarSheets';
 
 interface Line {
   key: number;
@@ -22,7 +25,10 @@ interface Line {
   staffId: string;
 }
 
-type Mode = 'cash' | 'upi' | 'card' | 'split';
+type PayKind = keyof PayParts;
+type DiscountKind = 'amount' | 'percent';
+type Split = Record<PayKind, number | null>;
+const NO_SPLIT: Split = { cash: null, upi: null, card: null, udhaar: null };
 
 let nextKey = 1;
 
@@ -31,8 +37,13 @@ interface Draft {
   lines: Line[];
   phone: string;
   client: string;
-  mode: Mode;
-  split: { cash: number | null; upi: number | null; card: number | null };
+  pay: PayKind;
+  splitOn: boolean;
+  split: Split;
+  discountOn: boolean;
+  discountKind: DiscountKind;
+  discountValue: number | null;
+  discountNote: string;
 }
 
 // A client walks up mid-entry, or the phone closes the app: the half-done
@@ -40,20 +51,27 @@ interface Draft {
 const DRAFT_PREFIX = 'ngstudio-draft:';
 const draftKey = (userId: string, date: string) => `${DRAFT_PREFIX}${userId}:${date}`;
 
-function loadDraft(key: string): Draft | null {
+function loadDraft(key: string): Partial<Draft> | null {
   try {
     // Drafts left from earlier days are stale: drop them.
     for (let i = localStorage.length - 1; i >= 0; i--) {
       const k = localStorage.key(i);
       if (k?.startsWith(DRAFT_PREFIX) && k !== key && k.slice(k.lastIndexOf(':') + 1) < todayIST()) localStorage.removeItem(k);
     }
-    const d = JSON.parse(localStorage.getItem(key) ?? 'null') as Draft | null;
+    const d = JSON.parse(localStorage.getItem(key) ?? 'null') as Partial<Draft> | null;
     if (!d?.lines?.length) return null;
     nextKey = Math.max(nextKey, ...d.lines.map((l) => l.key + 1));
     return d;
   } catch {
     return null;
   }
+}
+
+/** Lowest and highest price in a list of services, for the category headers. */
+function priceSpan(services: Service[]): [number, number] {
+  const lows = services.map((s) => s.price_min ?? s.price);
+  const highs = services.map((s) => s.price_max ?? s.price);
+  return [Math.min(...lows), Math.max(...highs)];
 }
 
 export default function LogVisitPage() {
@@ -75,30 +93,44 @@ export default function LogVisitPage() {
   const [step, setStep] = useState<'pick' | 'review'>(draft?.step ?? 'pick');
   const [lines, setLines] = useState<Line[]>(draft?.lines ?? []);
   const [search, setSearch] = useState('');
-  const [category, setCategory] = useState<string | null>(null);
+  const [openCat, setOpenCat] = useState<string | null>(null);
   const [priceFor, setPriceFor] = useState<{ service: Service; lineKey?: number; current?: number } | null>(null);
   const [staffFor, setStaffFor] = useState<number | null>(null);
   const [phone, setPhone] = useState(draft?.phone ?? '');
   const [client, setClient] = useState(draft?.client ?? '');
-  const [mode, setMode] = useState<Mode>(draft?.mode ?? 'cash');
-  const [split, setSplit] = useState<Draft['split']>(draft?.split ?? { cash: null, upi: null, card: null });
+  const [pay, setPay] = useState<PayKind>(draft?.pay ?? 'cash');
+  const [splitOn, setSplitOn] = useState(draft?.splitOn ?? false);
+  // Merged over the defaults: a draft saved by an older version may lack some parts.
+  const [split, setSplit] = useState<Split>({ ...NO_SPLIT, ...draft?.split });
+  const [discountOn, setDiscountOn] = useState(draft?.discountOn ?? false);
+  const [discountKind, setDiscountKind] = useState<DiscountKind>(draft?.discountKind ?? 'amount');
+  const [discountValue, setDiscountValue] = useState<number | null>(draft?.discountValue ?? null);
+  const [discountNote, setDiscountNote] = useState(draft?.discountNote ?? '');
+  const [collectOpen, setCollectOpen] = useState(false);
+  const [bump, setBump] = useState(0);
 
   useEffect(() => {
     try {
-      if (lines.length) localStorage.setItem(storeKey, JSON.stringify({ step, lines, phone, client, mode, split } satisfies Draft));
-      else localStorage.removeItem(storeKey);
+      if (lines.length) {
+        const d: Draft = { step, lines, phone, client, pay, splitOn, split, discountOn, discountKind, discountValue, discountNote };
+        localStorage.setItem(storeKey, JSON.stringify(d));
+      } else localStorage.removeItem(storeKey);
     } catch {
       // No storage: the entry just isn't kept between visits.
     }
-  }, [storeKey, step, lines, phone, client, mode, split]);
+  }, [storeKey, step, lines, phone, client, pay, splitOn, split, discountOn, discountKind, discountValue, discountNote]);
 
   const doers = useMemo(
     () => (team.data ?? []).filter((p) => p.active && (p.is_staff || p.is_owner)),
     [team.data],
   );
   const defaultStaff = me.is_staff || me.is_owner ? me.id : doers[0]?.id ?? me.id;
-  const total = sum(lines.map((l) => l.price));
-  const splitTotal = (split.cash ?? 0) + (split.upi ?? 0) + (split.card ?? 0);
+
+  const subtotal = sum(lines.map((l) => l.price));
+  const discount = discountOn ? discountFrom(subtotal, discountKind, discountValue) : 0;
+  const total = subtotal - discount;
+  const parts = payParts(splitOn ? 'split' : pay, total, split);
+  const partsSum = parts.cash + parts.upi + parts.card + parts.udhaar;
 
   // Each step starts at the top, so the services just picked are in view.
   useEffect(() => {
@@ -120,11 +152,15 @@ export default function LogVisitPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tenDigits]);
 
+  // Does this client already owe udhaar from an earlier visit?
+  const owedRows = useUdhaarForPhone(phone).data ?? [];
+  const owed = sum(owedRows.map((r) => r.outstanding));
+
   function addService(s: Service, price: number) {
     haptic();
     setLines((ls) => [...ls, { key: nextKey++, service: s, price, staffId: defaultStaff }]);
     setSearch('');
-    setStep('review');
+    setBump((n) => n + 1);
   }
 
   function tapService(s: Service) {
@@ -136,31 +172,35 @@ export default function LogVisitPage() {
     setLines([]);
     setPhone('');
     setClient('');
-    setMode('cash');
-    setSplit({ cash: null, upi: null, card: null });
+    setPay('cash');
+    setSplitOn(false);
+    setSplit(NO_SPLIT);
+    setDiscountOn(false);
+    setDiscountKind('amount');
+    setDiscountValue(null);
+    setDiscountNote('');
     setStep('pick');
   }
 
   const save = useMutation({
-    mutationFn: async () => {
-      const pay = mode === 'split'
-        ? { paid_cash: split.cash ?? 0, paid_upi: split.upi ?? 0, paid_card: split.card ?? 0 }
-        : { paid_cash: mode === 'cash' ? total : 0, paid_upi: mode === 'upi' ? total : 0, paid_card: mode === 'card' ? total : 0 };
-      const id = must(await supabase.rpc('log_visit', {
-        p: {
-          ...pay,
-          visit_date: date,
-          client_name: client.trim() || null,
-          client_phone: tenDigits ?? (phone.trim() || null),
-          lines: lines.map((l) => ({ service_id: l.service.id, price: l.price, staff_id: l.staffId })),
-        },
-      })) as string;
-      return id;
-    },
+    mutationFn: async () => must(await supabase.rpc('log_visit', {
+      p: {
+        paid_cash: parts.cash,
+        paid_upi: parts.upi,
+        paid_card: parts.card,
+        paid_udhaar: parts.udhaar,
+        discount,
+        discount_note: discount > 0 ? discountNote.trim() || null : null,
+        visit_date: date,
+        client_name: client.trim() || null,
+        client_phone: tenDigits ?? (phone.trim() || null),
+        lines: lines.map((l) => ({ service_id: l.service.id, price: l.price, staff_id: l.staffId })),
+      },
+    })) as string,
     onSuccess: (id) => {
       const amount = formatINR(total);
       reset();
-      qc.invalidateQueries({ queryKey: ['visits'] });
+      for (const k of ['visits', 'work', 'udhaar']) qc.invalidateQueries({ queryKey: [k] });
       toast({
         kind: 'success',
         text: t('log_saved', { amount }),
@@ -171,7 +211,7 @@ export default function LogVisitPage() {
             if (error) toast({ kind: 'error', text: errorText(error, t) });
             else {
               toast({ kind: 'info', text: t('log_undone') });
-              qc.invalidateQueries({ queryKey: ['visits'] });
+              for (const k of ['visits', 'work', 'udhaar']) qc.invalidateQueries({ queryKey: [k] });
             }
           },
         },
@@ -179,10 +219,16 @@ export default function LogVisitPage() {
     },
   });
 
-  const canSave = lines.length > 0 && (mode !== 'split' || splitTotal === total) && !save.isPending;
+  // What still stands between Mom's staff and the Save button, in words.
+  const needsClient = parts.udhaar > 0 && (!client.trim() || !tenDigits);
+  const blocker = partsSum !== total ? t('log_split_left', { amount: formatINR(total - partsSum) })
+    : needsClient ? t('udhaar_needs_client') : null;
+  const canSave = lines.length > 0 && !blocker && !save.isPending;
+
   const dateBanner = date !== today && (
     <div className="notice notice-warning">{t('log_for_date', { date: formatDate(date, lang) })}</div>
   );
+  const countOf = (id: string) => lines.filter((l) => l.service.id === id).length;
 
   // ---------- step 1: pick services ----------
   if (step === 'pick') {
@@ -199,47 +245,63 @@ export default function LogVisitPage() {
                 const hits = services.filter((s) =>
                   s.name_en.toLowerCase().includes(q) || (s.name_hi ?? '').includes(search.trim()));
                 return hits.length
-                  ? <ServiceList services={hits} onTap={tapService} />
+                  ? <div className="list">{hits.map((s) => (
+                    <ServiceRow key={s.id} s={s} count={countOf(s.id)} onTap={tapService}
+                      category={categories.find((c) => c.id === s.category_id)} />
+                  ))}</div>
                   : <Empty title={t('log_no_match')} />;
               }
               const freq = (frequent.data ?? []).map((id) => services.find((s) => s.id === id)).filter(Boolean) as Service[];
-              const activeCat = category ?? categories[0]?.id ?? null;
               return (
                 <>
                   {freq.length > 0 && (
                     <section className="stack">
                       <h2 className="section-title">{t('log_frequent')}</h2>
                       <div className="stat-grid">
-                        {freq.map((s) => (
-                          <button key={s.id} className="card-link" onClick={() => tapService(s)} style={{ padding: 14 }}>
-                            <div style={{ fontWeight: 700, lineHeight: 1.3 }}>{nameOf(s, lang)}</div>
-                            <div className="muted small num" style={{ marginTop: 4 }}>{priceLabel(s, t('from'))}</div>
-                          </button>
-                        ))}
+                        {freq.map((s) => {
+                          const n = countOf(s.id);
+                          return (
+                            <button key={s.id} className={`card-link tile${n ? ' picked' : ''}`} onClick={() => tapService(s)}>
+                              <div style={{ fontWeight: 700, lineHeight: 1.3 }}>{nameOf(s, lang)}</div>
+                              <div className="muted small num" style={{ marginTop: 4 }}>{priceLabel(s, t('from'))}</div>
+                              {n > 0 && <span className="tile-check" key={n}><Check size={14} />{n > 1 ? n : ''}</span>}
+                            </button>
+                          );
+                        })}
                       </div>
                     </section>
                   )}
                   <section className="stack">
-                    <h2 className="section-title">{t('log_all_services')}</h2>
-                    <div className="chips" role="toolbar" aria-label={t('category')}>
-                      {categories.map((c) => (
-                        <button key={c.id} className="chip" aria-pressed={c.id === activeCat} onClick={() => setCategory(c.id)}>
-                          {nameOf(c, lang)}
-                        </button>
-                      ))}
+                    <h2 className="section-title">{t('log_categories')}</h2>
+                    <div className="accordion">
+                      {categories.map((c) => {
+                        const items = services.filter((s) => s.category_id === c.id);
+                        if (!items.length) return null;
+                        const [lo, hi] = priceSpan(items);
+                        const picked = items.reduce((n, s) => n + countOf(s.id), 0);
+                        return (
+                          <CategoryGroup key={c.id} open={openCat === c.id}
+                            onToggle={() => setOpenCat(openCat === c.id ? null : c.id)}
+                            title={nameOf(c, lang)} picked={picked}
+                            sub={`${t('log_services_n', { n: items.length })} · ${lo === hi ? formatINR(lo) : `${formatINR(lo)}–${formatINR(hi)}`}`}>
+                            {items.map((s) => <ServiceRow key={s.id} s={s} count={countOf(s.id)} onTap={tapService} />)}
+                          </CategoryGroup>
+                        );
+                      })}
                     </div>
-                    <ServiceList services={services.filter((s) => s.category_id === activeCat)} onTap={tapService} />
                   </section>
                 </>
               );
             }}
           </Loaded>
-          {lines.length > 0 && (
+          {lines.length > 0 ? (
             <div className="sticky-actions">
-              <button className="btn btn-primary btn-lg btn-block" onClick={() => setStep('review')}>
-                {t('log_continue', { n: lines.length, amount: formatINR(total) })}
+              <button key={bump} className="btn btn-primary btn-lg btn-block bump" onClick={() => setStep('review')}>
+                {t('log_continue', { n: lines.length, amount: formatINR(subtotal) })}
               </button>
             </div>
+          ) : (
+            <p className="muted small center">{t('log_tap_to_add')}</p>
           )}
         </Page>
         <PriceSheet
@@ -256,10 +318,11 @@ export default function LogVisitPage() {
     );
   }
 
-  // ---------- step 2: who did it, client, payment ----------
+  // ---------- step 2: the bill ----------
+  const pctShown = subtotal > 0 && discount > 0 ? Math.round((discount / subtotal) * 100) : 0;
   return (
     <>
-      <TopBar title={t('log_title')} back={false} actions={
+      <TopBar title={t('log_bill')} back={false} actions={
         <button className="icon-btn" aria-label={t('log_discard')} onClick={reset}><X /></button>
       } />
       <Page>
@@ -300,55 +363,156 @@ export default function LogVisitPage() {
           </button>
         </section>
 
-        <div className="card row-between">
-          <span className="stat-label">{t('total')}</span>
-          <Money n={total} className="stat-value" animate />
+        {/* ----- discount ----- */}
+        {!discountOn ? (
+          <button className="btn btn-soft btn-block" onClick={() => { setDiscountOn(true); haptic(); }}>
+            <Tag /> {t('discount_add')}
+          </button>
+        ) : (
+          <section className="card stack" style={{ animation: 'row-in 0.25s' }}>
+            <div className="row-between">
+              <span className="field-label row" style={{ gap: 8 }}><Tag size={20} /> {t('discount')}</span>
+              <button className="btn btn-link" style={{ minHeight: 36 }}
+                onClick={() => { setDiscountOn(false); setDiscountValue(null); setDiscountNote(''); }}>
+                {t('discount_remove')}
+              </button>
+            </div>
+            <div className="row" style={{ gap: 8, alignItems: 'stretch' }}>
+              <div className="tabs" role="tablist" style={{ flexShrink: 0 }}>
+                {(['amount', 'percent'] as const).map((k) => (
+                  <button key={k} role="tab" className="tab" style={{ minWidth: 52 }} aria-selected={discountKind === k}
+                    onClick={() => { setDiscountKind(k); setDiscountValue(null); }}>
+                    {k === 'amount' ? '₹' : '%'}
+                  </button>
+                ))}
+              </div>
+              <div className="grow">
+                {discountKind === 'amount'
+                  ? <MoneyInput aria-label={t('discount')} value={discountValue} onChange={setDiscountValue} autoFocus />
+                  : (
+                    <div className="money-input pct-input">
+                      <input className="input num" inputMode="numeric" aria-label={t('discount')} autoFocus
+                        value={discountValue ?? ''} placeholder="0"
+                        onChange={(e) => {
+                          const d = e.target.value.replace(/\D/g, '').slice(0, 3);
+                          setDiscountValue(d === '' ? null : Math.min(100, Number(d)));
+                        }} />
+                      <span className="rupee" aria-hidden="true">%</span>
+                    </div>
+                  )}
+              </div>
+            </div>
+            <div className="chips">
+              {(discountKind === 'amount' ? [50, 100, 200, 500].filter((n) => n < subtotal) : [5, 10, 15, 20]).map((n) => (
+                <button key={n} type="button" className="chip num" aria-pressed={discountValue === n}
+                  onClick={() => { haptic(); setDiscountValue(n); }}>
+                  {discountKind === 'amount' ? formatINR(n) : `${n}%`}
+                </button>
+              ))}
+            </div>
+            <Field label={`${t('discount_note')} (${t('optional')})`} htmlFor="dn">
+              <input id="dn" className="input" value={discountNote} onChange={(e) => setDiscountNote(e.target.value)}
+                placeholder={t('discount_note_example')} />
+            </Field>
+          </section>
+        )}
+
+        {/* ----- the bill ----- */}
+        <div className="card bill">
+          <div className="row-between"><span className="muted">{t('subtotal')}</span><Money n={subtotal} /></div>
+          {discount > 0 && (
+            <div className="row-between text-success" style={{ animation: 'row-in 0.2s' }}>
+              <span>{t('discount')}{pctShown ? ` (${pctShown}%)` : ''}</span>
+              <span className="num">−{formatINR(discount)}</span>
+            </div>
+          )}
+          <div className="bill-total row-between">
+            <span className="stat-label">{t('total')}</span>
+            <Money n={total} className="stat-value" animate />
+          </div>
         </div>
 
+        {/* ----- client ----- */}
         <section className="stack">
-          <h2 className="section-title">{t('log_client')} <span style={{ textTransform: 'none', fontWeight: 500 }}>({t('optional')})</span></h2>
+          <h2 className="section-title">
+            {t('log_client')}{' '}
+            <span style={{ textTransform: 'none', fontWeight: 500 }}>({parts.udhaar > 0 ? t('needed_for_udhaar') : t('optional')})</span>
+          </h2>
           <div className="card stack">
-            <Field label={t('phone')} htmlFor="cp">
+            <Field label={t('phone')} htmlFor="cp" error={needsClient && !tenDigits && phone ? t('phone_invalid') : null}>
               <PhoneInput id="cp" value={phone} onChange={setPhone} />
             </Field>
             <Field label={t('name')} htmlFor="cn">
-              <input id="cn" className="input" value={client} onChange={(e) => setClient(e.target.value)} autoComplete="off" />
+              <input id="cn" className="input" value={client} onChange={(e) => setClient(e.target.value)} autoComplete="off"
+                aria-invalid={needsClient && !client.trim() ? true : undefined} />
             </Field>
+            {owed > 0 && (
+              <div className="notice notice-warning" style={{ alignItems: 'center', animation: 'row-in 0.25s' }}>
+                <AlertCircle />
+                <span className="grow">
+                  {t('udhaar_owed', { amount: formatINR(owed) })}
+                  <span className="small" style={{ display: 'block' }}>{t('since', { date: formatDate(owedRows[0]!.visit_date, lang, false) })}</span>
+                </span>
+                <button className="btn btn-sm btn-secondary" onClick={() => setCollectOpen(true)}>{t('udhaar_collect')}</button>
+              </div>
+            )}
           </div>
         </section>
 
+        {/* ----- payment ----- */}
         <section className="stack">
           <h2 className="section-title">{t('log_payment')}</h2>
-          <Choices<Mode>
-            label={t('log_payment')}
-            value={mode}
-            onChange={setMode}
-            options={[
-              { value: 'cash', label: t('cash'), icon: <Banknote /> },
-              { value: 'upi', label: t('upi'), icon: <Smartphone /> },
-              { value: 'card', label: t('card'), icon: <CreditCard /> },
-              { value: 'split', label: t('split'), icon: <Split /> },
-            ]}
-          />
-          {mode === 'split' && (
-            <div className="card stack">
-              {(['cash', 'upi', 'card'] as const).map((k) => (
+          {!splitOn && (
+            <div className="pay-modes">
+              <Choices<PayKind>
+                label={t('log_payment')}
+                value={pay}
+                onChange={setPay}
+                options={[
+                  { value: 'cash', label: t('cash'), icon: <Banknote /> },
+                  { value: 'upi', label: t('upi'), icon: <Smartphone /> },
+                  { value: 'card', label: t('card'), icon: <CreditCard /> },
+                  { value: 'udhaar', label: t('udhaar'), icon: <HandCoins /> },
+                ]}
+              />
+            </div>
+          )}
+          <button className="btn btn-link" style={{ alignSelf: 'flex-start' }} onClick={() => {
+            haptic();
+            if (!splitOn) setSplit({ ...NO_SPLIT, [pay]: total });
+            setSplitOn(!splitOn);
+          }}>
+            <Split size={18} /> {splitOn ? t('split_off') : t('split_on')}
+          </button>
+          {splitOn && (
+            <div className="card stack" style={{ animation: 'row-in 0.25s' }}>
+              {(['cash', 'upi', 'card', 'udhaar'] as const).map((k) => (
                 <Field key={k} label={t(k)} htmlFor={`sp-${k}`}>
                   <MoneyInput id={`sp-${k}`} value={split[k]} onChange={(n) => setSplit((s) => ({ ...s, [k]: n }))} />
                 </Field>
               ))}
-              <p className={splitTotal === total ? 'text-success' : 'text-warning'} style={{ fontWeight: 700 }}>
-                {splitTotal === total
+              <p className={partsSum === total ? 'text-success' : 'text-warning'} style={{ fontWeight: 700 }}>
+                {partsSum === total
                   ? <><Check size={18} style={{ verticalAlign: '-3px' }} /> {t('log_split_ok')}</>
-                  : t('log_split_left', { amount: formatINR(total - splitTotal) })}
+                  : partsSum < total ? t('log_split_left', { amount: formatINR(total - partsSum) })
+                    : t('log_split_over', { amount: formatINR(partsSum - total) })}
               </p>
+            </div>
+          )}
+          {parts.udhaar > 0 && (
+            <div className="notice notice-warning" style={{ animation: 'row-in 0.25s' }}>
+              <HandCoins />
+              <span>{client.trim()
+                ? t('udhaar_note', { amount: formatINR(parts.udhaar), name: client.trim() })
+                : t('udhaar_note_noname', { amount: formatINR(parts.udhaar) })}</span>
             </div>
           )}
         </section>
 
         {save.error && <ErrorBox error={save.error} />}
 
-        <div className="sticky-actions">
+        <div className="sticky-actions stack" style={{ gap: 8 }}>
+          {blocker && lines.length > 0 && <p className="save-hint">{blocker}</p>}
           <button className="btn btn-primary btn-lg btn-block" disabled={!canSave} aria-busy={save.isPending} onClick={() => save.mutate()}>
             <Check /> {t('log_save', { amount: formatINR(total) })}
           </button>
@@ -371,6 +535,7 @@ export default function LogVisitPage() {
             return (
               <button key={d.id} className="list-item" aria-pressed={selected}
                 onClick={() => {
+                  haptic();
                   setLines((ls) => ls.map((l) => (l.key === staffFor ? { ...l, staffId: d.id } : l)));
                   setStaffFor(null);
                 }}>
@@ -381,21 +546,54 @@ export default function LogVisitPage() {
           })}
         </div>
       </Sheet>
+
+      {collectOpen && tenDigits && (
+        <CollectSheet phone={tenDigits} name={client.trim() || owedRows[0]?.client_name || null} owed={owed}
+          onClose={() => setCollectOpen(false)} />
+      )}
     </>
   );
 }
 
-function ServiceList({ services, onTap }: { services: Service[]; onTap: (s: Service) => void }) {
+/** A category that opens to show its services, so the whole menu fits on one screen. */
+function CategoryGroup({ open, onToggle, title, sub, picked, children }: {
+  open: boolean; onToggle: () => void; title: string; sub: string; picked: number; children: ReactNode;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    // Bring a newly opened category's services into view.
+    if (open) ref.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }, [open]);
+  return (
+    <div ref={ref} className={`acc${open ? ' open' : ''}`}>
+      <button className="acc-head" aria-expanded={open} onClick={() => { haptic(); onToggle(); }}>
+        <span className="grow">
+          <span className="title" style={{ display: 'block' }}>{title}</span>
+          <span className="sub num">{sub}</span>
+        </span>
+        {picked > 0 && <span className="badge badge-primary num" key={picked} style={{ animation: 'pop-in 0.3s' }}>{picked}</span>}
+        <ChevronDown className="acc-chev" />
+      </button>
+      {open && <div className="acc-body">{children}</div>}
+    </div>
+  );
+}
+
+function ServiceRow({ s, count, onTap, category }: {
+  s: Service; count: number; onTap: (s: Service) => void; category?: ServiceCategory;
+}) {
   const { t, lang } = useI18n();
   return (
-    <div className="list">
-      {services.map((s) => (
-        <button key={s.id} className="list-item" onClick={() => onTap(s)}>
-          <span className="grow title" style={{ fontWeight: 500 }}>{nameOf(s, lang)}</span>
-          <span className="end num muted">{priceLabel(s, t('from'))}</span>
-        </button>
-      ))}
-    </div>
+    <button className="list-item svc" onClick={() => onTap(s)}>
+      <span className="grow">
+        <span className="title" style={{ display: 'block', fontWeight: 550 }}>{nameOf(s, lang)}</span>
+        {category && <span className="sub">{nameOf(category, lang)}</span>}
+      </span>
+      <span className="end num muted">{priceLabel(s, t('from'))}</span>
+      <span className={`svc-add${count ? ' on' : ''}`} key={count} aria-label={count ? t('log_added') : undefined}>
+        {count ? <>{count > 1 ? <span className="num">{count}</span> : <Check />}</> : <Plus />}
+      </span>
+    </button>
   );
 }
 
@@ -426,6 +624,13 @@ function PriceSheet({ target, onClose, onDone }: {
         >
           <MoneyInput id="ps" value={value} onChange={setValue} autoFocus />
         </Field>
+        {ranged && (
+          <div className="chips">
+            {[...new Set([s.price_min!, Math.round((s.price_min! + s.price_max!) / 2 / 10) * 10, s.price_max!])].map((p) => (
+              <button key={p} type="button" className="chip num" aria-pressed={value === p} onClick={() => setValue(p)}>{formatINR(p)}</button>
+            ))}
+          </div>
+        )}
         {low && <div className="notice notice-warning">{t('log_price_low')}</div>}
         <button className="btn btn-primary btn-lg btn-block" disabled={value == null}>
           <Check /> {t('done')}

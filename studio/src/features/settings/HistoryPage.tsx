@@ -19,11 +19,11 @@ interface AuditRow {
   at: string;
 }
 
-const FILTERS = ['all', 'payments', 'visits', 'installments', 'services', 'profiles'] as const;
+const FILTERS = ['all', 'payments', 'visits', 'udhaar_collections', 'installments', 'services', 'profiles'] as const;
 type Filter = typeof FILTERS[number];
 const PAGE = 100;
 const IGNORED = new Set(['updated_at', 'marked_at', 'closed_at', 'voided_at', 'voided_by', 'created_at', 'id', 'sort']);
-const MONEY = new Set(['amount', 'total', 'price', 'price_min', 'price_max', 'list_fee', 'agreed_fee', 'paid_cash', 'paid_upi', 'paid_card', 'expected_cash', 'counted_cash']);
+const MONEY = new Set(['amount', 'total', 'price', 'price_min', 'price_max', 'list_fee', 'agreed_fee', 'paid_cash', 'paid_upi', 'paid_card', 'paid_udhaar', 'discount', 'expected_cash', 'counted_cash']);
 
 type Row = Record<string, unknown>;
 const str = (v: unknown) => (v == null ? '' : String(v));
@@ -52,7 +52,13 @@ function describe(r: AuditRow, t: TFn, lang: 'en' | 'hi'): string {
         .filter(Boolean).join(' · ');
     case 'visits':
       return [cancelled ? t('history_cancelled', { reason: str(n.void_reason) }) : null,
-        formatINR(Number(d.total)), str(d.client_name) || null, d.visit_date ? formatDate(String(d.visit_date), lang) : null]
+        formatINR(Number(d.total)), str(d.client_name) || null, d.visit_date ? formatDate(String(d.visit_date), lang) : null,
+        Number(d.discount) > 0 ? t('entry_discount_badge', { amount: formatINR(Number(d.discount)) }) : null,
+        Number(d.paid_udhaar) > 0 ? t('entry_udhaar_badge', { amount: formatINR(Number(d.paid_udhaar)) }) : null]
+        .filter(Boolean).join(' · ');
+    case 'udhaar_collections':
+      return [cancelled ? t('history_cancelled', { reason: str(n.void_reason) }) : null,
+        formatINR(Number(d.amount)), d.mode ? t(String(d.mode) as TKey) : null, formatDate(String(d.collected_on), lang)]
         .filter(Boolean).join(' · ');
     case 'day_closings':
       return `${formatDate(String(d.day), lang)} · ${diffText(Number(d.counted_cash) - Number(d.expected_cash), t)}`;

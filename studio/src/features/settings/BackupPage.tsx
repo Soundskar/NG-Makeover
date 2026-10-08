@@ -10,7 +10,7 @@ import { useSettings } from '../students/data';
 // Every table Mom's business depends on, in a sensible reading order.
 const TABLES = [
   'students', 'student_details', 'enrollments', 'enrollment_fees', 'installments', 'payments',
-  'attendance', 'module_progress', 'visits', 'visit_lines', 'day_closings',
+  'attendance', 'module_progress', 'visits', 'visit_lines', 'udhaar_collections', 'day_closings',
   'courses', 'course_modules', 'service_categories', 'services', 'time_slots', 'holidays', 'profiles',
   'settings', 'audit_log',
 ] as const;
