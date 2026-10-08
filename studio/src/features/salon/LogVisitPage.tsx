@@ -58,6 +58,11 @@ export default function LogVisitPage() {
   const total = sum(lines.map((l) => l.price));
   const splitTotal = (split.cash ?? 0) + (split.upi ?? 0) + (split.card ?? 0);
 
+  // Each step starts at the top, so the services just picked are in view.
+  useEffect(() => {
+    window.scrollTo({ top: 0 });
+  }, [step]);
+
   // Known client: fill in her name from the phone number.
   const tenDigits = normalizePhone(phone);
   useEffect(() => {

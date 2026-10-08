@@ -101,7 +101,14 @@ export default function HomePage() {
         <div className="row-between"><span className="stat-label">{t('home_salon_today')}</span><ChevronRight className="chev" /></div>
         <Money n={salon?.total ?? 0} className="stat-value" />
         <span className="stat-sub num">
-          {salon ? `${t('cash')} ${formatINR(salon.cash)} · ${t('upi')} ${formatINR(salon.upi)} · ${t('salon_entries', { n: salon.count })}` : '…'}
+          {salon
+            ? [
+              `${t('cash')} ${formatINR(salon.cash)}`,
+              `${t('upi')} ${formatINR(salon.upi)}`,
+              salon.card ? `${t('card')} ${formatINR(salon.card)}` : null,
+              t('salon_entries', { n: salon.count }),
+            ].filter(Boolean).join(' · ')
+            : '…'}
         </span>
       </Link>
 

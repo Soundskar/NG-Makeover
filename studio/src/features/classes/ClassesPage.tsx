@@ -41,7 +41,7 @@ export default function ClassesPage() {
 
   return (
     <>
-      <TopBar title={t('classes_title')} />
+      <TopBar title={day === today ? t('classes_title') : t('nav_classes')} />
       <Page>
         <div className="row-between">
           <button className="icon-btn" aria-label={t('prev_day')} onClick={() => setDay(addDays(day, -1))}><ChevronLeft /></button>
