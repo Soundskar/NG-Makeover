@@ -1,0 +1,91 @@
+import { lazy, Suspense } from 'react';
+import { Navigate, Outlet, Route, Routes } from 'react-router-dom';
+import { useAuth } from './auth/auth';
+import { InactivePage, LoginPage, NotConfiguredPage } from './auth/LoginPage';
+import { BottomNav } from './components/BottomNav';
+import { OfflineBanner, Spinner } from './components/ui';
+import { configured } from './lib/supabase';
+import type { Profile } from './lib/types';
+
+// Each area loads on first visit so the app opens fast on older phones.
+const HomePage = lazy(() => import('./features/dashboard/HomePage'));
+const LogVisitPage = lazy(() => import('./features/salon/LogVisitPage'));
+const MyDayPage = lazy(() => import('./features/salon/MyDayPage'));
+const SalonDayPage = lazy(() => import('./features/salon/SalonDayPage'));
+const CloseDayPage = lazy(() => import('./features/salon/CloseDayPage'));
+const StudentsPage = lazy(() => import('./features/students/StudentsPage'));
+const StudentPage = lazy(() => import('./features/students/StudentPage'));
+const AdmissionPage = lazy(() => import('./features/students/AdmissionPage'));
+const FollowUpPage = lazy(() => import('./features/students/FollowUpPage'));
+const ClassesPage = lazy(() => import('./features/classes/ClassesPage'));
+const MorePage = lazy(() => import('./features/settings/MorePage'));
+const AccountPage = lazy(() => import('./features/settings/AccountPage'));
+const CatalogPage = lazy(() => import('./features/settings/CatalogPage'));
+const CoursesPage = lazy(() => import('./features/settings/CoursesPage'));
+const TeamPage = lazy(() => import('./features/settings/TeamPage'));
+const SlotsPage = lazy(() => import('./features/settings/SlotsPage'));
+const BackupPage = lazy(() => import('./features/settings/BackupPage'));
+const HistoryPage = lazy(() => import('./features/settings/HistoryPage'));
+
+function Shell() {
+  return (
+    <div className="shell">
+      <OfflineBanner />
+      <Suspense fallback={<Spinner />}>
+        <Outlet />
+      </Suspense>
+      <BottomNav />
+    </div>
+  );
+}
+
+function homeFor(p: Profile): string {
+  if (p.is_owner) return '/';
+  if (p.is_staff) return '/salon/new';
+  if (p.is_trainer) return '/classes';
+  return '/account';
+}
+
+export function App() {
+  const { status, profile } = useAuth();
+
+  if (!configured) return <NotConfiguredPage />;
+  if (status === 'loading') return <Spinner />;
+  if (status === 'signed_out') return <LoginPage />;
+  if (status === 'inactive' || !profile) return <InactivePage />;
+
+  const owner = profile.is_owner;
+  const staff = owner || profile.is_staff;
+  const trainer = owner || profile.is_trainer;
+  const home = homeFor(profile);
+
+  return (
+    <Routes>
+      <Route element={<Shell />}>
+        <Route index element={owner ? <HomePage /> : <Navigate to={home} replace />} />
+        <Route path="account" element={<AccountPage />} />
+
+        {staff && <Route path="salon/new" element={<LogVisitPage />} />}
+        {staff && <Route path="my-day" element={<MyDayPage />} />}
+        {owner && <Route path="salon" element={<SalonDayPage />} />}
+        {owner && <Route path="salon/close" element={<CloseDayPage />} />}
+
+        {trainer && <Route path="classes" element={<ClassesPage />} />}
+        {trainer && <Route path="students" element={<StudentsPage />} />}
+        {trainer && <Route path="students/:id" element={<StudentPage />} />}
+        {owner && <Route path="students/new" element={<AdmissionPage />} />}
+        {owner && <Route path="fees" element={<FollowUpPage />} />}
+
+        {owner && <Route path="more" element={<MorePage />} />}
+        {owner && <Route path="more/catalog" element={<CatalogPage />} />}
+        {owner && <Route path="more/courses" element={<CoursesPage />} />}
+        {owner && <Route path="more/team" element={<TeamPage />} />}
+        {owner && <Route path="more/slots" element={<SlotsPage />} />}
+        {owner && <Route path="more/backup" element={<BackupPage />} />}
+        {owner && <Route path="more/history" element={<HistoryPage />} />}
+
+        <Route path="*" element={<Navigate to={home} replace />} />
+      </Route>
+    </Routes>
+  );
+}

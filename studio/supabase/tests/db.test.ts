@@ -95,9 +95,12 @@ describe('catalog seed', () => {
 });
 
 describe('who can see anything at all', () => {
-  it('blocks anonymous visitors completely', async () => {
+  it('blocks anonymous visitors from everything but the keep-alive ping', async () => {
     await expect(as('anon', `select * from services`)).rejects.toThrow(/permission denied/);
     await expect(as('anon', `select log_visit('{}'::jsonb)`)).rejects.toThrow(/permission denied/);
+    await expect(as('anon', `select * from enrollment_fee_status`)).rejects.toThrow(/permission denied/);
+    await expect(as('anon', `select client_name_for_phone('9876543210')`)).rejects.toThrow(/permission denied/);
+    expect(await as('anon', `select ping() as p`)).toEqual([{ p: 'ok' }]);
   });
 
   it('shows nothing to an account Mom did not create', async () => {

@@ -1,0 +1,10 @@
+# Supabase CLI settings for NG Studio. Used by `npx supabase link`,
+# `db push` and `functions deploy`; the hosted projects hold the real config.
+project_id = "ng-studio"
+
+[auth]
+# Internal app: nobody signs themselves up. Logins are created by the owner.
+enable_signup = false
+
+[functions.manage-staff]
+verify_jwt = true
