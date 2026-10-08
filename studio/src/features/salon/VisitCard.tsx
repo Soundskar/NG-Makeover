@@ -25,15 +25,16 @@ export function VisitCard({ v, showCreator, canCancel }: {
   return (
     <article className="card stack" style={{ gap: 8, opacity: v.voided ? 0.6 : 1 }}>
       <div className="row-between" style={{ alignItems: 'flex-start' }}>
-        <div className="stack" style={{ gap: 0 }}>
+        <div className="stack grow" style={{ gap: 0 }}>
           <span className="muted small num">{formatClock(v.created_at, lang)}{showCreator ? ` · ${t('entered_by', { name: nameOf(v.created_by) })}` : ''}</span>
-          {(v.client_name || v.client_phone) && (
-            <span style={{ fontWeight: 600 }}>
-              {v.client_name ?? ''}{v.client_phone && <span className="muted small num"> <Phone size={14} style={{ verticalAlign: '-2px' }} /> {formatPhone(v.client_phone)}</span>}
+          {v.client_name && <span style={{ fontWeight: 650 }}>{v.client_name}</span>}
+          {v.client_phone && (
+            <span className="muted small num" style={{ whiteSpace: 'nowrap' }}>
+              <Phone size={14} style={{ verticalAlign: '-2px' }} /> {formatPhone(v.client_phone)}
             </span>
           )}
         </div>
-        <div className="stack" style={{ gap: 0, alignItems: 'flex-end' }}>
+        <div className="stack" style={{ gap: 0, alignItems: 'flex-end', textAlign: 'right', maxWidth: '45%' }}>
           <Money n={v.total} className={v.voided ? '' : 'stat-label'} />
           <span className="muted small">{payModeLabel(v, t)}</span>
         </div>
@@ -89,10 +90,10 @@ function CancelSheet({ visitId, onClose }: { visitId: string; onClose: () => voi
     <Sheet open onClose={onClose} title={t('entry_cancel')}>
       <form className="stack" onSubmit={(e) => { e.preventDefault(); m.mutate(); }}>
         <Field label={t('entry_cancel_reason')} htmlFor="cr">
-          <input id="cr" className="input" value={reason} onChange={(e) => setReason(e.target.value)} required />
+          <input id="cr" className="input" value={reason} onChange={(e) => setReason(e.target.value)} required autoFocus />
         </Field>
         {m.error && <ErrorBox error={m.error} />}
-        <button className="btn btn-danger btn-lg btn-block" disabled={!reason.trim() || m.isPending}>
+        <button className="btn btn-danger btn-lg btn-block" disabled={!reason.trim() || m.isPending} aria-busy={m.isPending}>
           <Ban /> {t('entry_cancel')}
         </button>
       </form>

@@ -482,6 +482,9 @@ export const en = {
   history_t_profiles: 'Login',
   history_cancelled: 'Cancelled: {reason}',
   history_load_more: 'Show older changes',
+  fee_next_short: 'Next {date}',
+  no: 'No',
+  history_system: 'System',
 } as const;
 
 export type TKey = keyof typeof en;

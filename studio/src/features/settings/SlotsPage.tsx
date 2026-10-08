@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Check, ChevronRight, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
-import { ErrorBox, Field, Loaded, Page, Sheet, TopBar } from '../../components/ui';
+import { CheckRow, Confirm, ErrorBox, Field, Loaded, Page, Sheet, TopBar, useToast } from '../../components/ui';
 import { useI18n } from '../../i18n/i18n';
 import { formatDate, formatTime, todayIST, weekdayName } from '../../lib/dates';
 import { slotLoad, WEEK_ORDER } from '../../lib/schedule';
@@ -17,15 +17,24 @@ export default function SlotsPage() {
   const enrolled = useActiveEnrollments();
   const [slot, setSlot] = useState<TimeSlot | 'new' | null>(null);
   const [holidayOpen, setHolidayOpen] = useState(false);
+  const [removing, setRemoving] = useState<{ day: string; name: string } | null>(null);
+  const toast = useToast();
   const refresh = () => qc.invalidateQueries({ queryKey: ['settings'] });
 
   const setOff = useMutation({
     mutationFn: async (day: number | null) => must(await supabase.from('settings').update({ weekly_off: day }).eq('id', true)),
-    onSuccess: refresh,
+    onSuccess: () => {
+      refresh();
+      toast({ kind: 'success', text: t('saved') });
+    },
   });
   const removeHoliday = useMutation({
     mutationFn: async (day: string) => must(await supabase.from('holidays').delete().eq('day', day)),
-    onSuccess: refresh,
+    onSuccess: () => {
+      refresh();
+      setRemoving(null);
+      toast({ kind: 'info', text: t('holiday_removed') });
+    },
   });
 
   return (
@@ -73,7 +82,7 @@ export default function SlotsPage() {
                   {holidays.filter((h) => h.day >= todayIST()).map((h) => (
                     <div key={h.day} className="list-item">
                       <span className="grow"><span className="title" style={{ display: 'block' }}>{h.name}</span><span className="sub">{formatDate(h.day, lang)}</span></span>
-                      <button className="icon-btn" aria-label={t('remove')} onClick={() => removeHoliday.mutate(h.day)}><Trash2 /></button>
+                      <button className="icon-btn" aria-label={t('remove')} onClick={() => setRemoving(h)}><Trash2 /></button>
                     </div>
                   ))}
                 </div>
@@ -82,6 +91,11 @@ export default function SlotsPage() {
 
               {slot && <SlotSheet slot={slot === 'new' ? null : slot} onClose={() => setSlot(null)} />}
               {holidayOpen && <HolidaySheet onClose={() => setHolidayOpen(false)} />}
+              <Confirm open={removing != null} onClose={() => setRemoving(null)} busy={removeHoliday.isPending} danger
+                title={removing ? `${t('remove')}: ${removing.name}?` : ''}
+                body={removing ? formatDate(removing.day, lang) : undefined}
+                confirmLabel={t('remove')}
+                onConfirm={() => removing && removeHoliday.mutate(removing.day)} />
             </>
           )}
         </Loaded>
@@ -93,6 +107,7 @@ export default function SlotsPage() {
 function SlotSheet({ slot, onClose }: { slot: TimeSlot | null; onClose: () => void }) {
   const { t } = useI18n();
   const qc = useQueryClient();
+  const toast = useToast();
   const [start, setStart] = useState(slot?.start_time.slice(0, 5) ?? '11:00');
   const [end, setEnd] = useState(slot?.end_time.slice(0, 5) ?? '13:00');
   const [seats, setSeats] = useState(String(slot?.seats ?? 6));
@@ -105,6 +120,7 @@ function SlotSheet({ slot, onClose }: { slot: TimeSlot | null; onClose: () => vo
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['settings'] });
+      toast({ kind: 'success', text: t('saved') });
       onClose();
     },
   });
@@ -118,12 +134,9 @@ function SlotSheet({ slot, onClose }: { slot: TimeSlot | null; onClose: () => vo
         <Field label={t('slot_seats')} htmlFor="sl-n">
           <input id="sl-n" className="input num" inputMode="numeric" value={seats} onChange={(e) => setSeats(e.target.value.replace(/\D/g, '').slice(0, 3))} />
         </Field>
-        <label className="row" style={{ minHeight: 44, fontWeight: 600 }}>
-          <input type="checkbox" checked={active} onChange={(e) => setActive(e.target.checked)} style={{ width: 22, height: 22, accentColor: 'var(--primary)' }} />
-          {t('slot_active')}
-        </label>
+        <CheckRow checked={active} onChange={setActive} label={t('slot_active')} />
         {m.error && <ErrorBox error={m.error} />}
-        <button className="btn btn-primary btn-lg btn-block" disabled={!start || !end || end <= start || !(Number(seats) > 0) || m.isPending} onClick={() => m.mutate()}>
+        <button className="btn btn-primary btn-lg btn-block" disabled={!start || !end || end <= start || !(Number(seats) > 0) || m.isPending} aria-busy={m.isPending} onClick={() => m.mutate()}>
           <Check /> {t('save')}
         </button>
       </div>
@@ -134,12 +147,14 @@ function SlotSheet({ slot, onClose }: { slot: TimeSlot | null; onClose: () => vo
 function HolidaySheet({ onClose }: { onClose: () => void }) {
   const { t } = useI18n();
   const qc = useQueryClient();
+  const toast = useToast();
   const [day, setDay] = useState(todayIST());
   const [name, setName] = useState('');
   const m = useMutation({
     mutationFn: async () => must(await supabase.from('holidays').upsert({ day, name: name.trim() })),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['settings'] });
+      toast({ kind: 'success', text: t('saved') });
       onClose();
     },
   });
@@ -149,7 +164,7 @@ function HolidaySheet({ onClose }: { onClose: () => void }) {
         <Field label={t('date')} htmlFor="h-d"><input id="h-d" type="date" className="input" value={day} onChange={(e) => setDay(e.target.value)} /></Field>
         <Field label={t('holiday_name')} htmlFor="h-n"><input id="h-n" className="input" placeholder={t('holiday_example')} value={name} onChange={(e) => setName(e.target.value)} /></Field>
         {m.error && <ErrorBox error={m.error} />}
-        <button className="btn btn-primary btn-lg btn-block" disabled={!day || !name.trim() || m.isPending} onClick={() => m.mutate()}>
+        <button className="btn btn-primary btn-lg btn-block" disabled={!day || !name.trim() || m.isPending} aria-busy={m.isPending} onClick={() => m.mutate()}>
           <Check /> {t('save')}
         </button>
       </div>

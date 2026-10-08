@@ -8,6 +8,7 @@ import {
 } from '../../components/ui';
 import { errorText, useI18n } from '../../i18n/i18n';
 import { formatDate, todayIST } from '../../lib/dates';
+import { haptic } from '../../lib/haptics';
 import { formatINR, sum } from '../../lib/money';
 import { must, supabase } from '../../lib/supabase';
 import { nameOf, type Service } from '../../lib/types';
@@ -25,6 +26,36 @@ type Mode = 'cash' | 'upi' | 'card' | 'split';
 
 let nextKey = 1;
 
+interface Draft {
+  step: 'pick' | 'review';
+  lines: Line[];
+  phone: string;
+  client: string;
+  mode: Mode;
+  split: { cash: number | null; upi: number | null; card: number | null };
+}
+
+// A client walks up mid-entry, or the phone closes the app: the half-done
+// entry is kept on this phone until it's saved or discarded. One per person per day.
+const DRAFT_PREFIX = 'ngstudio-draft:';
+const draftKey = (userId: string, date: string) => `${DRAFT_PREFIX}${userId}:${date}`;
+
+function loadDraft(key: string): Draft | null {
+  try {
+    // Drafts left from earlier days are stale: drop them.
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+      const k = localStorage.key(i);
+      if (k?.startsWith(DRAFT_PREFIX) && k !== key && k.slice(k.lastIndexOf(':') + 1) < todayIST()) localStorage.removeItem(k);
+    }
+    const d = JSON.parse(localStorage.getItem(key) ?? 'null') as Draft | null;
+    if (!d?.lines?.length) return null;
+    nextKey = Math.max(nextKey, ...d.lines.map((l) => l.key + 1));
+    return d;
+  } catch {
+    return null;
+  }
+}
+
 export default function LogVisitPage() {
   const me = useMe();
   const { t, lang } = useI18n();
@@ -39,16 +70,27 @@ export default function LogVisitPage() {
   const frequent = useFrequentServices();
   const team = useTeam();
 
-  const [step, setStep] = useState<'pick' | 'review'>('pick');
-  const [lines, setLines] = useState<Line[]>([]);
+  const storeKey = draftKey(me.id, date);
+  const [draft] = useState(() => loadDraft(storeKey));
+  const [step, setStep] = useState<'pick' | 'review'>(draft?.step ?? 'pick');
+  const [lines, setLines] = useState<Line[]>(draft?.lines ?? []);
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState<string | null>(null);
   const [priceFor, setPriceFor] = useState<{ service: Service; lineKey?: number; current?: number } | null>(null);
   const [staffFor, setStaffFor] = useState<number | null>(null);
-  const [phone, setPhone] = useState('');
-  const [client, setClient] = useState('');
-  const [mode, setMode] = useState<Mode>('cash');
-  const [split, setSplit] = useState<{ cash: number | null; upi: number | null; card: number | null }>({ cash: null, upi: null, card: null });
+  const [phone, setPhone] = useState(draft?.phone ?? '');
+  const [client, setClient] = useState(draft?.client ?? '');
+  const [mode, setMode] = useState<Mode>(draft?.mode ?? 'cash');
+  const [split, setSplit] = useState<Draft['split']>(draft?.split ?? { cash: null, upi: null, card: null });
+
+  useEffect(() => {
+    try {
+      if (lines.length) localStorage.setItem(storeKey, JSON.stringify({ step, lines, phone, client, mode, split } satisfies Draft));
+      else localStorage.removeItem(storeKey);
+    } catch {
+      // No storage: the entry just isn't kept between visits.
+    }
+  }, [storeKey, step, lines, phone, client, mode, split]);
 
   const doers = useMemo(
     () => (team.data ?? []).filter((p) => p.active && (p.is_staff || p.is_owner)),
@@ -79,6 +121,7 @@ export default function LogVisitPage() {
   }, [tenDigits]);
 
   function addService(s: Service, price: number) {
+    haptic();
     setLines((ls) => [...ls, { key: nextKey++, service: s, price, staffId: defaultStaff }]);
     setSearch('');
     setStep('review');
@@ -259,7 +302,7 @@ export default function LogVisitPage() {
 
         <div className="card row-between">
           <span className="stat-label">{t('total')}</span>
-          <Money n={total} className="stat-value" />
+          <Money n={total} className="stat-value" animate />
         </div>
 
         <section className="stack">
@@ -306,7 +349,7 @@ export default function LogVisitPage() {
         {save.error && <ErrorBox error={save.error} />}
 
         <div className="sticky-actions">
-          <button className="btn btn-primary btn-lg btn-block" disabled={!canSave} onClick={() => save.mutate()}>
+          <button className="btn btn-primary btn-lg btn-block" disabled={!canSave} aria-busy={save.isPending} onClick={() => save.mutate()}>
             <Check /> {t('log_save', { amount: formatINR(total) })}
           </button>
         </div>

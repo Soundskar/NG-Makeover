@@ -484,4 +484,7 @@ export const hi: Record<TKey, string> = {
   history_t_profiles: 'लॉगिन',
   history_cancelled: 'रद्द: {reason}',
   history_load_more: 'पुराने बदलाव दिखाएँ',
+  fee_next_short: 'अगली {date}',
+  no: 'नहीं',
+  history_system: 'सिस्टम',
 };

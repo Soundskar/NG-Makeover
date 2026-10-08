@@ -3,6 +3,9 @@ import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig({
+  // The version shown on My account. Defined on import.meta.env because Vite 8's
+  // dev server no longer replaces custom globals like __APP_VERSION__.
+  define: { 'import.meta.env.VITE_APP_VERSION': JSON.stringify(process.env.npm_package_version ?? 'dev') },
   plugins: [
     react(),
     VitePWA({
@@ -31,7 +34,6 @@ export default defineConfig({
       },
     }),
   ],
-  define: { __APP_VERSION__: JSON.stringify(process.env.npm_package_version ?? 'dev') },
   server: { port: 5173, strictPort: true },
   test: {
     include: ['src/**/*.test.ts', 'supabase/tests/**/*.test.ts'],

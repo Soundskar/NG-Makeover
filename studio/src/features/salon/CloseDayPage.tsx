@@ -1,8 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Lock } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Lock } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ErrorBox, Field, Loaded, Money, MoneyInput, Page, TopBar, useToast } from '../../components/ui';
+import { CheckRow, ErrorBox, Field, Loaded, Money, MoneyInput, Page, TopBar, useToast } from '../../components/ui';
 import { useI18n } from '../../i18n/i18n';
 import { formatDate, todayIST } from '../../lib/dates';
 import { formatINR, sum } from '../../lib/money';
@@ -70,7 +70,9 @@ export default function CloseDayPage() {
                 </Field>
 
                 {diff != null && (
-                  <div className={`notice ${diff === 0 ? 'notice-info' : 'notice-warning'}`} style={{ fontSize: '1.125rem', fontWeight: 700 }}>
+                  <div key={diff === 0 ? 'match' : 'off'} className={`notice ${diff === 0 ? 'notice-success' : 'notice-warning'}`}
+                    style={{ fontSize: '1.125rem', fontWeight: 700, animation: 'fade-in 0.2s' }}>
+                    {diff === 0 ? <CheckCircle2 /> : <AlertTriangle />}
                     {diffText(diff, t)}
                   </div>
                 )}
@@ -80,11 +82,7 @@ export default function CloseDayPage() {
                     <span className="stat-label">{t('close_upi_expected')}</span>
                     <Money n={s.upi} className="title" />
                   </div>
-                  <label className="row" style={{ minHeight: 48, fontWeight: 600 }}>
-                    <input type="checkbox" checked={upiOk} onChange={(e) => setUpiOk(e.target.checked)}
-                      style={{ width: 24, height: 24, accentColor: 'var(--primary)' }} />
-                    {t('close_upi_check')}
-                  </label>
+                  <CheckRow checked={upiOk} onChange={setUpiOk} label={t('close_upi_check')} />
                 </div>
 
                 {(academyCash.data ?? 0) > 0 && (
@@ -96,7 +94,7 @@ export default function CloseDayPage() {
                 </Field>
 
                 {save.error && <ErrorBox error={save.error} />}
-                <button className="btn btn-primary btn-lg btn-block" disabled={counted == null || save.isPending} onClick={() => save.mutate()}>
+                <button className="btn btn-primary btn-lg btn-block" disabled={counted == null || save.isPending} aria-busy={save.isPending} onClick={() => save.mutate()}>
                   <Lock /> {closing.data ? t('close_update') : t('close_title')}
                 </button>
               </>

@@ -1,9 +1,10 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { ErrorBox } from '../../components/ui';
+import { Count, ErrorBox } from '../../components/ui';
 import { useI18n } from '../../i18n/i18n';
 import { formatDate, formatWeekday, todayIST, weekdayOf } from '../../lib/dates';
+import { haptic } from '../../lib/haptics';
 import { must, supabase } from '../../lib/supabase';
-import type { AttendanceStatus, Enrollment } from '../../lib/types';
+import type { Attendance, AttendanceStatus, Enrollment } from '../../lib/types';
 import type { StudentFull } from './data';
 
 const badge = { present: 'badge-success', absent: 'badge-danger', leave: 'badge-neutral' } as const;
@@ -28,7 +29,26 @@ export function AttendanceTab({ data, enrollment }: { data: StudentFull; enrollm
       enrollment_id: enrollment.id, day: today, status,
       extra: !enrollment.days_of_week.includes(weekdayOf(today)),
     })),
-    onSuccess: () => {
+    // Show the tap at once; put it back if the save fails.
+    onMutate: async (status) => {
+      haptic();
+      const key = ['student', data.student.id];
+      await qc.cancelQueries({ queryKey: key });
+      const prev = qc.getQueryData<StudentFull>(key);
+      if (prev) {
+        const row: Attendance = {
+          enrollment_id: enrollment.id, day: today, status, marked_by: null, marked_at: new Date().toISOString(),
+          extra: !enrollment.days_of_week.includes(weekdayOf(today)),
+        };
+        qc.setQueryData<StudentFull>(key, {
+          ...prev,
+          attendance: [row, ...prev.attendance.filter((a) => !(a.enrollment_id === enrollment.id && a.day === today))],
+        });
+      }
+      return { prev, key };
+    },
+    onError: (_e, _s, ctx) => ctx?.prev && qc.setQueryData(ctx.key, ctx.prev),
+    onSettled: () => {
       qc.invalidateQueries({ queryKey: ['student'] });
       qc.invalidateQueries({ queryKey: ['attendance'] });
     },
@@ -38,7 +58,8 @@ export function AttendanceTab({ data, enrollment }: { data: StudentFull; enrollm
     <div className="stack-lg">
       <div className="card stack" style={{ gap: 4 }}>
         <div className="stat-label">{t('attendance')}</div>
-        <div className="stat-value num">{pct == null ? '—' : `${pct}%`}</div>
+        <div className="stat-value num">{pct == null ? '—' : <><Count n={pct} />%</>}</div>
+        {pct != null && <div className={`bar ${pct >= 80 ? 'success' : ''}`}><span style={{ width: `${pct}%` }} /></div>}
         <div className="stat-sub">
           {t('present')} {count('present')} · {t('absent')} {count('absent')} · {t('leave')} {count('leave')}
         </div>
@@ -47,7 +68,7 @@ export function AttendanceTab({ data, enrollment }: { data: StudentFull; enrollm
       {enrollment.status === 'active' && (
         <section className="stack">
           <h2 className="section-title">{t('today')}</h2>
-          <AttendanceButtons value={todays?.status ?? null} onChange={(s) => mark.mutate(s)} disabled={mark.isPending} />
+          <AttendanceButtons value={todays?.status ?? null} onChange={(s) => mark.mutate(s)} />
           {mark.error && <ErrorBox error={mark.error} />}
         </section>
       )}

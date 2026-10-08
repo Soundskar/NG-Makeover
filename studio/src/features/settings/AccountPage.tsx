@@ -1,7 +1,7 @@
 import { LogOut } from 'lucide-react';
 import { useAuth, useMe } from '../../auth/auth';
-import { Choices, Initials, Page, TopBar } from '../../components/ui';
-import { useI18n } from '../../i18n/i18n';
+import { Choices, Initials, Page, TopBar, useToast } from '../../components/ui';
+import { errorText, useI18n } from '../../i18n/i18n';
 import { supabase } from '../../lib/supabase';
 import type { Lang } from '../../lib/types';
 
@@ -9,13 +9,17 @@ export default function AccountPage() {
   const me = useMe();
   const { signOut } = useAuth();
   const { t, lang, setLang } = useI18n();
+  const toast = useToast();
 
   const roles = [me.is_owner && t('role_owner'), me.is_trainer && t('role_trainer'), me.is_staff && t('role_staff')].filter(Boolean);
 
   function choose(l: Lang) {
     setLang(l);
-    // Remembered on the account, so it follows her to another phone.
-    void supabase.rpc('set_my_language', { p_lang: l });
+    // Remembered on the account, so it follows her to another phone. (Supabase
+    // requests only go out once awaited or .then()'d, so this must not be a bare call.)
+    supabase.rpc('set_my_language', { p_lang: l }).then(({ error }) => {
+      if (error) toast({ kind: 'error', text: errorText(error, t) });
+    });
   }
 
   return (
@@ -37,7 +41,7 @@ export default function AccountPage() {
         </section>
 
         <button className="btn btn-secondary btn-block" onClick={signOut}><LogOut /> {t('logout')}</button>
-        <p className="muted small center">NG Studio · v{__APP_VERSION__}</p>
+        <p className="muted small center">NG Studio · v{import.meta.env.VITE_APP_VERSION}</p>
       </Page>
     </>
   );

@@ -1,7 +1,7 @@
 import { Plus } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useMe } from '../../auth/auth';
-import { Empty, Loaded, Money, Page, TopBar } from '../../components/ui';
+import { Count, Empty, Loaded, Money, Page, TopBar } from '../../components/ui';
 import { useI18n } from '../../i18n/i18n';
 import { formatDate, todayIST } from '../../lib/dates';
 import { summarizeDay, useVisits } from './data';
@@ -28,17 +28,17 @@ export default function MyDayPage() {
                 <div className="stat-grid">
                   <div className="card">
                     <div className="stat-label">{t('total')}</div>
-                    <Money n={s.total} className="stat-value" />
+                    <Money n={s.total} className="stat-value" animate />
                   </div>
                   <div className="card">
                     <div className="stat-label">{t('my_day_entries')}</div>
-                    <div className="stat-value num">{s.count}</div>
+                    <Count n={s.count} className="stat-value" />
                   </div>
                 </div>
                 {mine.length === 0 ? (
                   <Empty title={t('my_day_empty')} sub={t('my_day_empty_sub')} />
                 ) : (
-                  <div className="stack">
+                  <div className="stack stagger">
                     <p className="muted small">{t('entry_cancel_window')}</p>
                     {mine.map((v) => (
                       <VisitCard key={v.id} v={v} canCancel={withinCancelWindow(v.created_at)} />

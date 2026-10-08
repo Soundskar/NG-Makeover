@@ -1,11 +1,13 @@
 import { useQuery } from '@tanstack/react-query';
-import { AlertTriangle, CalendarCheck, ChevronRight, HardDriveDownload, Lock, Plus, UserPlus, UserX } from 'lucide-react';
+import {
+  AlertTriangle, CalendarCheck, CalendarClock, ChevronRight, HardDriveDownload, IndianRupee, Lock, Plus, UserPlus, Users, UserX,
+} from 'lucide-react';
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { useMe } from '../../auth/auth';
-import { Money, Page } from '../../components/ui';
+import { Count, Money, Page } from '../../components/ui';
 import { useI18n } from '../../i18n/i18n';
-import { addDays, daysBetween, formatDate, formatWeekday, monthStart, todayIST } from '../../lib/dates';
+import { addDays, daysBetween, formatDate, formatWeekday, monthStart, todayIST, weekdayOf } from '../../lib/dates';
 import { formatINR, sum } from '../../lib/money';
 import { isScheduledOn } from '../../lib/schedule';
 import { must, supabase } from '../../lib/supabase';
@@ -45,7 +47,9 @@ export default function HomePage() {
   const dueWeek = active.filter((f) => f.overdue_amount === 0 && f.next_due_date && f.next_due_date <= addDays(today, 7));
 
   const holiday = settings.data?.holidays.some((h) => h.day === today);
-  const scheduled = holiday ? [] : (enrollments.data ?? []).filter((e) => isScheduledOn(e, today));
+  const weeklyOff = settings.data?.settings.weekly_off != null
+    && settings.data.settings.weekly_off === weekdayOf(today);
+  const scheduled = holiday || weeklyOff ? [] : (enrollments.data ?? []).filter((e) => isScheduledOn(e, today));
   const markedToday = new Set((recentAttendance.data ?? []).filter((a) => a.day === today).map((a) => a.enrollment_id));
   const marked = scheduled.filter((e) => markedToday.has(e.id)).length;
 
@@ -71,7 +75,7 @@ export default function HomePage() {
     alerts.push({ key: 'abs-more', to: '/classes', icon: <UserX />, text: t('alert_absent_more', { n: absentTwice.length - 3 }), tone: 'warning' });
   }
   if (ending.length) {
-    alerts.push({ key: 'ending', to: '/fees', icon: <CalendarCheck />, text: t('alert_ending', { n: ending.length }), tone: 'warning' });
+    alerts.push({ key: 'ending', to: '/fees?tab=ending', icon: <CalendarCheck />, text: t('alert_ending', { n: ending.length }), tone: 'warning' });
   }
   if (settings.isSuccess && hasData && (backupDays == null || backupDays >= 7)) {
     alerts.push({
@@ -83,23 +87,25 @@ export default function HomePage() {
   return (
     <Page>
       <header className="stack" style={{ gap: 0, paddingTop: 8 }}>
-        <h1 style={{ fontSize: '1.625rem', fontWeight: 800 }}>{t('greeting', { name: me.display_name.split(' ')[0] ?? '' })}</h1>
+        <h1 style={{ fontSize: '1.625rem', fontWeight: 800, letterSpacing: '-0.01em' }}>
+          {t('greeting', { name: me.display_name.split(' ')[0] ?? '' })}
+        </h1>
         <p className="muted">{formatWeekday(today, lang)}, {formatDate(today, lang)}</p>
       </header>
 
       {alerts.length > 0 && (
-        <section className="stack" aria-label={t('home_attention')}>
+        <section className="stack stagger" aria-label={t('home_attention')}>
           {alerts.map((a) => (
-            <Link key={a.key} to={a.to} className={`notice notice-${a.tone}`} style={{ textDecoration: 'none' }}>
+            <Link key={a.key} to={a.to} className={`notice notice-${a.tone}`}>
               {a.icon}<span className="grow">{a.text}</span><ChevronRight />
             </Link>
           ))}
         </section>
       )}
 
-      <Link to="/salon" className="card-link stack" style={{ gap: 2 }}>
+      <Link to="/salon" className="card-link hero stack" style={{ gap: 2 }}>
         <div className="row-between"><span className="stat-label">{t('home_salon_today')}</span><ChevronRight className="chev" /></div>
-        <Money n={salon?.total ?? 0} className="stat-value" />
+        <Money n={salon?.total ?? 0} className="stat-value" animate />
         <span className="stat-sub num">
           {salon
             ? [
@@ -114,29 +120,45 @@ export default function HomePage() {
 
       <div className="stat-grid">
         <Link to="/fees" className="card-link stack" style={{ gap: 2 }}>
+          <span className={`stat-icon ${overdue.length ? 'danger' : ''}`}><AlertTriangle /></span>
           <span className="stat-label">{t('home_overdue')}</span>
-          <span className={`stat-value num ${overdue.length ? 'text-danger' : ''}`}>{overdue.length}</span>
+          <Count n={overdue.length} className={`stat-value ${overdue.length ? 'text-danger' : ''}`} />
           <span className="stat-sub num">{formatINR(sum(overdue.map((f) => f.overdue_amount)))}</span>
         </Link>
-        <Link to="/fees" className="card-link stack" style={{ gap: 2 }}>
+        <Link to="/fees?tab=week" className="card-link stack" style={{ gap: 2 }}>
+          <span className={`stat-icon ${dueWeek.length ? 'warning' : ''}`}><CalendarClock /></span>
           <span className="stat-label">{t('home_due_week')}</span>
-          <span className="stat-value num">{dueWeek.length}</span>
+          <Count n={dueWeek.length} className="stat-value" />
           <span className="stat-sub num">{formatINR(sum(dueWeek.map((f) => f.next_due_amount ?? 0)))}</span>
         </Link>
       </div>
 
-      <div className="card stack" style={{ gap: 2 }}>
+      <Link to="/fees" className="card-link stack" style={{ gap: 2 }}>
+        <div className="row-between">
+          <span className="stat-icon success"><IndianRupee /></span>
+          <ChevronRight className="chev" />
+        </div>
         <span className="stat-label">{t('home_fees_month')}</span>
-        <Money n={collected.data?.month ?? 0} className="stat-value" />
+        <Money n={collected.data?.month ?? 0} className="stat-value" animate />
         <span className="stat-sub num">{t('home_fees_today', { amount: formatINR(collected.data?.today ?? 0) })}</span>
-      </div>
+      </Link>
 
       <Link to="/classes" className="card-link stack" style={{ gap: 2 }}>
-        <div className="row-between"><span className="stat-label">{t('home_classes_today')}</span><ChevronRight className="chev" /></div>
-        <span className="stat-value num">{scheduled.length}</span>
+        <div className="row-between">
+          <span className="stat-icon primary"><Users /></span>
+          <ChevronRight className="chev" />
+        </div>
+        <span className="stat-label">{t('home_classes_today')}</span>
+        <Count n={scheduled.length} className="stat-value" />
         <span className="stat-sub">
-          {holiday ? t('weekly_off_today') : scheduled.length ? t('classes_marked', { done: marked, total: scheduled.length }) : t('classes_none')}
+          {holiday || weeklyOff ? t('weekly_off_today')
+            : scheduled.length ? t('classes_marked', { done: marked, total: scheduled.length }) : t('classes_none')}
         </span>
+        {scheduled.length > 0 && (
+          <div className={`bar ${marked === scheduled.length ? 'success' : ''}`} style={{ marginTop: 8 }}>
+            <span style={{ width: `${Math.round((marked / scheduled.length) * 100)}%` }} />
+          </div>
+        )}
       </Link>
 
       <div className="stat-grid">

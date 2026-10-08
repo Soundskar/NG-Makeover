@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Check, ChevronRight, Pencil, Plus } from 'lucide-react';
 import { useState } from 'react';
-import { ErrorBox, Field, Loaded, MoneyInput, Page, Sheet, TopBar, useToast } from '../../components/ui';
+import { CheckRow, ErrorBox, Field, Loaded, MoneyInput, Page, Sheet, TopBar, useToast } from '../../components/ui';
 import { useI18n } from '../../i18n/i18n';
 import { formatINR } from '../../lib/money';
 import { must, supabase } from '../../lib/supabase';
@@ -99,12 +99,9 @@ function CourseSheet({ course, onClose }: { course: Course; onClose: () => void 
           <input id="c-m" className="input num" inputMode="decimal" value={months} onChange={(e) => setMonths(e.target.value.replace(/[^\d.]/g, ''))} />
         </Field>
         <Field label={t('list_fee')} htmlFor="c-f" hint={t('fee_change_hint')}><MoneyInput id="c-f" value={fee} onChange={setFee} /></Field>
-        <label className="row" style={{ minHeight: 44, fontWeight: 600 }}>
-          <input type="checkbox" checked={active} onChange={(e) => setActive(e.target.checked)} style={{ width: 22, height: 22, accentColor: 'var(--primary)' }} />
-          {t('course_active')}
-        </label>
+        <CheckRow checked={active} onChange={setActive} label={t('course_active')} />
         {m.error && <ErrorBox error={m.error} />}
-        <button className="btn btn-primary btn-lg btn-block" disabled={!en.trim() || !(monthsN > 0) || fee == null || m.isPending} onClick={() => m.mutate()}>
+        <button className="btn btn-primary btn-lg btn-block" disabled={!en.trim() || !(monthsN > 0) || fee == null || m.isPending} aria-busy={m.isPending} onClick={() => m.mutate()}>
           <Check /> {t('save')}
         </button>
       </div>
@@ -117,6 +114,7 @@ function ModuleSheet({ course, module, nextSort, onClose }: {
 }) {
   const { t, lang } = useI18n();
   const qc = useQueryClient();
+  const toast = useToast();
   const [en, setEn] = useState(module?.title_en ?? '');
   const [hi, setHi] = useState(module?.title_hi ?? '');
   const [topics, setTopics] = useState(module?.topics ?? '');
@@ -128,6 +126,7 @@ function ModuleSheet({ course, module, nextSort, onClose }: {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['courses'] });
+      toast({ kind: 'success', text: t('saved') });
       onClose();
     },
   });
@@ -138,7 +137,7 @@ function ModuleSheet({ course, module, nextSort, onClose }: {
         <Field label={t('name_hi')} htmlFor="m-hi"><input id="m-hi" className="input" lang="hi" value={hi} onChange={(e) => setHi(e.target.value)} /></Field>
         <Field label={t('module_topics')} htmlFor="m-t"><textarea id="m-t" className="textarea" value={topics} onChange={(e) => setTopics(e.target.value)} /></Field>
         {m.error && <ErrorBox error={m.error} />}
-        <button className="btn btn-primary btn-lg btn-block" disabled={!en.trim() || m.isPending} onClick={() => m.mutate()}>
+        <button className="btn btn-primary btn-lg btn-block" disabled={!en.trim() || m.isPending} aria-busy={m.isPending} onClick={() => m.mutate()}>
           <Check /> {t('save')}
         </button>
       </div>

@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom';
 import { Empty, ErrorBox, Loaded, Page, SearchInput, Sheet, TopBar } from '../../components/ui';
 import { useI18n } from '../../i18n/i18n';
 import { addDays, formatDate, formatTime, formatWeekday, todayIST, weekdayOf } from '../../lib/dates';
+import { haptic } from '../../lib/haptics';
 import { isScheduledOn } from '../../lib/schedule';
 import { must, supabase } from '../../lib/supabase';
 import { nameOf, type Attendance, type AttendanceStatus } from '../../lib/types';
@@ -26,10 +27,26 @@ export default function ClassesPage() {
     queryFn: async () => must(await supabase.from('attendance').select('*').eq('day', day)) as Attendance[],
   });
 
+  // Taps show straight away; the save happens behind, and is undone on screen if it fails.
   const mark = useMutation({
     mutationFn: async (rows: { enrollment_id: string; status: AttendanceStatus; extra: boolean }[]) =>
       must(await supabase.from('attendance').upsert(rows.map((r) => ({ ...r, day, marked_at: new Date().toISOString() })))),
-    onSuccess: () => {
+    onMutate: async (rows) => {
+      haptic();
+      const key = ['attendance', day];
+      await qc.cancelQueries({ queryKey: key });
+      const prev = qc.getQueryData<Attendance[]>(key);
+      qc.setQueryData<Attendance[]>(key, (old = []) => {
+        const byId = new Map(old.map((a) => [a.enrollment_id, a]));
+        for (const r of rows) {
+          byId.set(r.enrollment_id, { ...r, day, marked_by: null, marked_at: new Date().toISOString() });
+        }
+        return [...byId.values()];
+      });
+      return { prev, key };
+    },
+    onError: (_e, _rows, ctx) => ctx && qc.setQueryData(ctx.key, ctx.prev),
+    onSettled: () => {
       qc.invalidateQueries({ queryKey: ['attendance', day] });
       qc.invalidateQueries({ queryKey: ['student'] });
       qc.invalidateQueries({ queryKey: ['home'] });
@@ -86,7 +103,7 @@ export default function ClassesPage() {
                   <span style={{ fontWeight: 700 }}>{e.students.full_name}</span>
                   <span className="muted small"> · {courseName(e.course_id)}{extra ? ` · ${t('extra_class')}` : ''}</span>
                 </Link>
-                <AttendanceButtons value={marks.get(e.id)?.status ?? null} disabled={mark.isPending}
+                <AttendanceButtons value={marks.get(e.id)?.status ?? null}
                   onChange={(status) => mark.mutate([{ enrollment_id: e.id, status, extra }])} />
               </div>
             );
@@ -94,7 +111,12 @@ export default function ClassesPage() {
             return (
               <>
                 {scheduled.length > 0 && (
-                  <p className="muted">{t('classes_marked', { done: markedCount, total: scheduled.length })}</p>
+                  <div className="stack" style={{ gap: 6 }}>
+                    <p className="muted">{t('classes_marked', { done: markedCount, total: scheduled.length })}</p>
+                    <div className={`bar ${markedCount === scheduled.length ? 'success' : ''}`}>
+                      <span style={{ width: `${Math.round((markedCount / scheduled.length) * 100)}%` }} />
+                    </div>
+                  </div>
                 )}
                 {scheduled.length === 0 && extras.length === 0 && !holiday && !weeklyOff && <Empty title={t('classes_none')} />}
                 {ordered.map(([slotId, list]) => {
@@ -107,13 +129,15 @@ export default function ClassesPage() {
                           {slot ? `${formatTime(slot.start_time, lang)} – ${formatTime(slot.end_time, lang)}` : t('slot_none')}
                         </h2>
                         {unmarked.length > 0 && (
-                          <button className="btn btn-sm btn-soft" disabled={mark.isPending}
+                          <button className="btn btn-sm btn-soft"
                             onClick={() => mark.mutate(unmarked.map((e) => ({ enrollment_id: e.id, status: 'present', extra: false })))}>
                             <CheckCheck /> {t('mark_all_present')}
                           </button>
                         )}
                       </div>
-                      {list.sort((a, b) => a.students.full_name.localeCompare(b.students.full_name)).map((e) => renderRow(e, false))}
+                      <div className="stack stagger">
+                        {[...list].sort((a, b) => a.students.full_name.localeCompare(b.students.full_name)).map((e) => renderRow(e, false))}
+                      </div>
                     </section>
                   );
                 })}

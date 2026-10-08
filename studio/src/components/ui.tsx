@@ -217,7 +217,16 @@ function useCountUp(target: number, enabled: boolean, ms = 500): number {
       if (p < 1) raf = requestAnimationFrame(step);
     };
     raf = requestAnimationFrame(step);
-    return () => cancelAnimationFrame(raf);
+    // Animation frames pause when the app is in the background: never leave a wrong number showing.
+    const settle = window.setTimeout(() => {
+      cancelAnimationFrame(raf);
+      from.current = target;
+      setShown(target);
+    }, ms + 80);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.clearTimeout(settle);
+    };
   }, [target, enabled, ms]);
   return shown;
 }

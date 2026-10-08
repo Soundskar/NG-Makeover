@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Check, ChevronRight, EyeOff, Plus } from 'lucide-react';
 import { useState } from 'react';
-import { ErrorBox, Field, Loaded, MoneyInput, Page, Sheet, TopBar, useToast } from '../../components/ui';
+import { CheckRow, ErrorBox, Field, Loaded, MoneyInput, Page, Sheet, TopBar, useToast } from '../../components/ui';
 import { useI18n } from '../../i18n/i18n';
 import { must, supabase } from '../../lib/supabase';
 import { nameOf, type Service, type ServiceCategory } from '../../lib/types';
@@ -94,11 +94,7 @@ function ServiceSheet({ service, categories, defaultCategory, onClose }: {
   });
 
   const check = (checked: boolean, set: (v: boolean) => void, label: string) => (
-    <label className="row" style={{ minHeight: 44, fontWeight: 600 }}>
-      <input type="checkbox" checked={checked} onChange={(e) => set(e.target.checked)}
-        style={{ width: 22, height: 22, accentColor: 'var(--primary)' }} />
-      {label}
-    </label>
+    <CheckRow checked={checked} onChange={set} label={label} />
   );
 
   return (
@@ -126,7 +122,7 @@ function ServiceSheet({ service, categories, defaultCategory, onClose }: {
         {check(active, setActive, t('service_active'))}
         {m.error && <ErrorBox error={m.error} />}
         <button className="btn btn-primary btn-lg btn-block"
-          disabled={!nameEn.trim() || !categoryId || (ranged ? !rangeOk : price == null) || m.isPending}
+          disabled={!nameEn.trim() || !categoryId || (ranged ? !rangeOk : price == null) || m.isPending} aria-busy={m.isPending}
           onClick={() => m.mutate()}>
           <Check /> {t('save')}
         </button>
@@ -138,6 +134,7 @@ function ServiceSheet({ service, categories, defaultCategory, onClose }: {
 function CategorySheet({ count, onClose }: { count: number; onClose: (id?: string) => void }) {
   const { t } = useI18n();
   const qc = useQueryClient();
+  const toast = useToast();
   const [en, setEn] = useState('');
   const [hi, setHi] = useState('');
   const m = useMutation({
@@ -145,6 +142,7 @@ function CategorySheet({ count, onClose }: { count: number; onClose: (id?: strin
       .insert({ name_en: en.trim(), name_hi: hi.trim() || null, sort: count + 1 }).select('id').single()) as { id: string }).id,
     onSuccess: (id) => {
       qc.invalidateQueries({ queryKey: ['catalog'] });
+      toast({ kind: 'success', text: t('saved') });
       onClose(id);
     },
   });
@@ -154,7 +152,7 @@ function CategorySheet({ count, onClose }: { count: number; onClose: (id?: strin
         <Field label={t('name_en')} htmlFor="c-en"><input id="c-en" className="input" value={en} onChange={(e) => setEn(e.target.value)} /></Field>
         <Field label={t('name_hi')} htmlFor="c-hi"><input id="c-hi" className="input" lang="hi" value={hi} onChange={(e) => setHi(e.target.value)} /></Field>
         {m.error && <ErrorBox error={m.error} />}
-        <button className="btn btn-primary btn-lg btn-block" disabled={!en.trim() || m.isPending} onClick={() => m.mutate()}>
+        <button className="btn btn-primary btn-lg btn-block" disabled={!en.trim() || m.isPending} aria-busy={m.isPending} onClick={() => m.mutate()}>
           <Check /> {t('save')}
         </button>
       </div>

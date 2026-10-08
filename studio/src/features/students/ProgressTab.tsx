@@ -2,9 +2,10 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Award, Star } from 'lucide-react';
 import { useState } from 'react';
 import { useMe } from '../../auth/auth';
-import { Confirm, ErrorBox, Loaded, useToast } from '../../components/ui';
+import { Confirm, Count, ErrorBox, Loaded, useToast } from '../../components/ui';
 import { useI18n } from '../../i18n/i18n';
 import { todayIST } from '../../lib/dates';
+import { haptic } from '../../lib/haptics';
 import { must, supabase } from '../../lib/supabase';
 import { nameOf, titleOf, type CourseModule, type Enrollment, type ModuleProgress } from '../../lib/types';
 import { modulesFor, useCourses, type StudentFull } from './data';
@@ -32,7 +33,27 @@ export function ProgressTab({ data, enrollment }: { data: StudentFull; enrollmen
         }));
       }
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['student'] }),
+    // Show the change at once; put it back if the save fails.
+    onMutate: async ({ module, level, rating }) => {
+      haptic(level === 'done' ? 'success' : 'tap');
+      const key = ['student', data.student.id];
+      await qc.cancelQueries({ queryKey: key });
+      const prev = qc.getQueryData<StudentFull>(key);
+      if (prev) {
+        const rest = prev.progress.filter((p) => !(p.enrollment_id === enrollment.id && p.module_id === module.id));
+        const old = progress.get(module.id);
+        qc.setQueryData<StudentFull>(key, {
+          ...prev,
+          progress: level === 'none' ? rest : [...rest, {
+            enrollment_id: enrollment.id, module_id: module.id, status: level, note: old?.note ?? null,
+            rating: rating === undefined ? old?.rating ?? null : rating, updated_at: new Date().toISOString(),
+          }],
+        });
+      }
+      return { prev, key };
+    },
+    onError: (_e, _v, ctx) => ctx?.prev && qc.setQueryData(ctx.key, ctx.prev),
+    onSettled: () => qc.invalidateQueries({ queryKey: ['student'] }),
   });
 
   const complete = useMutation({
@@ -61,7 +82,7 @@ export function ProgressTab({ data, enrollment }: { data: StudentFull; enrollmen
           <div className="stack-lg">
             <div className="card stack" style={{ gap: 6 }}>
               <div className="stat-label">{t('progress')}</div>
-              <div className="stat-value num">{pct}%</div>
+              <div className="stat-value num"><Count n={pct} />%</div>
               <div className={`bar ${pct === 100 ? 'success' : ''}`}><span style={{ width: `${pct}%` }} /></div>
               <div className="stat-sub">{t('modules_done', { done, total })}</div>
             </div>
@@ -72,7 +93,7 @@ export function ProgressTab({ data, enrollment }: { data: StudentFull; enrollmen
               <section key={g.course.id} className="stack">
                 {groups.length > 1 && <h2 className="section-title">{nameOf(g.course, lang)}</h2>}
                 {g.modules.map((m) => (
-                  <ModuleRow key={m.id} module={m} row={progress.get(m.id)} busy={setLevel.isPending}
+                  <ModuleRow key={m.id} module={m} row={progress.get(m.id)}
                     onLevel={(level) => setLevel.mutate({ module: m, level })}
                     onRate={(rating) => setLevel.mutate({ module: m, level: 'done', rating })} />
                 ))}
@@ -97,22 +118,22 @@ export function ProgressTab({ data, enrollment }: { data: StudentFull; enrollmen
   );
 }
 
-function ModuleRow({ module, row, busy, onLevel, onRate }: {
-  module: CourseModule; row: ModuleProgress | undefined; busy: boolean;
+function ModuleRow({ module, row, onLevel, onRate }: {
+  module: CourseModule; row: ModuleProgress | undefined;
   onLevel: (l: Level) => void; onRate: (r: number) => void;
 }) {
   const { t, lang } = useI18n();
   const level: Level = row?.status ?? 'none';
   const color = level === 'done' ? 'var(--success)' : level === 'learning' ? 'var(--warning)' : 'var(--border)';
   return (
-    <div className="card stack" style={{ gap: 10, borderLeft: `5px solid ${color}` }}>
+    <div className="card stack" style={{ gap: 10, borderLeft: `5px solid ${color}`, transition: 'border-color 0.3s' }}>
       <div>
         <div style={{ fontWeight: 700 }}>{titleOf(module, lang)}</div>
         {module.topics && <div className="muted small">{module.topics}</div>}
       </div>
       <div className="choices" role="radiogroup" aria-label={titleOf(module, lang)}>
         {(['none', 'learning', 'done'] as const).map((l) => (
-          <button key={l} type="button" role="radio" aria-checked={level === l} className="choice" disabled={busy}
+          <button key={l} type="button" role="radio" aria-checked={level === l} className="choice"
             style={{ fontSize: '0.9375rem' }} onClick={() => onLevel(l)}>
             {t(`level_${l}`)}
           </button>

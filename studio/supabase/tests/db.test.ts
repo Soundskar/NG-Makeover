@@ -149,6 +149,17 @@ describe('salon log', () => {
     expect(await as('trainer', `select id from visits`)).toHaveLength(0);
   });
 
+  it('a switched-off login sees none of its own entries, even with a session still open', async () => {
+    const wax = await serviceId('Rica wax · Full arms');
+    const [v] = await su<{ id: string }>(
+      `insert into visits (client_name, total, paid_cash, created_by) values ('Old', 350, 350, $1) returning id`, [U.gone]);
+    await su(`insert into visit_lines (visit_id, service_id, service_name, list_price, price, staff_id)
+              values ($1, $2, 'Rica wax', 350, 350, $3)`, [v!.id, wax, U.gone]);
+    expect(await as('gone', `select id from visits`)).toHaveLength(0);
+    expect(await as('gone', `select id from visit_lines`)).toHaveLength(0);
+    await su(`delete from visits where id = $1`, [v!.id]);
+  });
+
   it('rejects a payment that does not match the total', async () => {
     const wax = await serviceId('Rica wax · Full arms');
     await expect(as('staff', `select log_visit($1::jsonb)`, [JSON.stringify({

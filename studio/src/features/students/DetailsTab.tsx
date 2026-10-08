@@ -104,6 +104,7 @@ export function DetailsTab({ data, enrollment }: { data: StudentFull; enrollment
 function EditStudentSheet({ data, onClose }: { data: StudentFull; onClose: () => void }) {
   const { t } = useI18n();
   const qc = useQueryClient();
+  const toast = useToast();
   const s = data.student;
   const [name, setName] = useState(s.full_name);
   const [phone, setPhone] = useState(s.phone ?? '');
@@ -126,6 +127,7 @@ function EditStudentSheet({ data, onClose }: { data: StudentFull; onClose: () =>
     },
     onSuccess: () => {
       for (const k of ['student', 'students']) qc.invalidateQueries({ queryKey: [k] });
+      toast({ kind: 'success', text: t('saved') });
       onClose();
     },
   });
@@ -146,7 +148,7 @@ function EditStudentSheet({ data, onClose }: { data: StudentFull; onClose: () =>
         <Field label={t('emergency_contact')} htmlFor="e-ec"><input id="e-ec" className="input" value={d.emergency_contact ?? ''} onChange={(e) => set('emergency_contact')(e.target.value)} /></Field>
         <Field label={t('notes')} htmlFor="e-no"><textarea id="e-no" className="textarea" value={notes} onChange={(e) => setNotes(e.target.value)} /></Field>
         {m.error && <ErrorBox error={m.error} />}
-        <button className="btn btn-primary btn-lg btn-block" disabled={!name.trim() || m.isPending} onClick={() => m.mutate()}>
+        <button className="btn btn-primary btn-lg btn-block" disabled={!name.trim() || m.isPending} aria-busy={m.isPending} onClick={() => m.mutate()}>
           <Check /> {t('save')}
         </button>
       </div>
@@ -157,6 +159,7 @@ function EditStudentSheet({ data, onClose }: { data: StudentFull; onClose: () =>
 function EditTimingSheet({ enrollment, onClose }: { enrollment: Enrollment; onClose: () => void }) {
   const { t, lang } = useI18n();
   const qc = useQueryClient();
+  const toast = useToast();
   const settings = useSettings();
   const team = useTeam();
   const enrolled = useActiveEnrollments();
@@ -170,6 +173,7 @@ function EditTimingSheet({ enrollment, onClose }: { enrollment: Enrollment; onCl
     }).eq('id', enrollment.id)),
     onSuccess: () => {
       for (const k of ['student', 'students', 'active-enrollments']) qc.invalidateQueries({ queryKey: [k] });
+      toast({ kind: 'success', text: t('saved') });
       onClose();
     },
   });
@@ -217,7 +221,7 @@ function EditTimingSheet({ enrollment, onClose }: { enrollment: Enrollment; onCl
           <input id="t-e" type="date" className="input" value={end} min={enrollment.start_date} onChange={(e) => setEnd(e.target.value)} />
         </Field>
         {m.error && <ErrorBox error={m.error} />}
-        <button className="btn btn-primary btn-lg btn-block" disabled={days.length === 0 || !end || m.isPending} onClick={() => m.mutate()}>
+        <button className="btn btn-primary btn-lg btn-block" disabled={days.length === 0 || !end || m.isPending} aria-busy={m.isPending} onClick={() => m.mutate()}>
           <Check /> {t('save')}
         </button>
       </div>

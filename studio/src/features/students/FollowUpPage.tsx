@@ -1,6 +1,5 @@
 import { Bell, ChevronRight } from 'lucide-react';
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { Empty, Loaded, Page, TopBar } from '../../components/ui';
 import { useI18n } from '../../i18n/i18n';
 import { addDays, formatDate, todayIST } from '../../lib/dates';
@@ -19,7 +18,10 @@ export default function FollowUpPage() {
   const students = useStudents();
   const courses = useCourses();
   const settings = useSettings();
-  const [tab, setTab] = useState<Tab>('overdue');
+  // The tab is in the address, so Home can open "This week" directly and Back keeps it.
+  const [params, setParams] = useSearchParams();
+  const tab: Tab = params.get('tab') === 'week' || params.get('tab') === 'ending' ? params.get('tab') as Tab : 'overdue';
+  const setTab = (x: Tab) => setParams(x === 'overdue' ? {} : { tab: x }, { replace: true });
   const today = todayIST();
   const weekEnd = addDays(today, 7);
   const studio = settings.data?.settings.studio_name ?? 'Namita Garg Makeover';
@@ -82,7 +84,7 @@ export default function FollowUpPage() {
                   <span className="stat-label">{t('followup_count', { n: rows.length })}</span>
                   <span className="stat-label num">{formatINR(total)}</span>
                 </div>
-                <div className="stack">
+                <div className="stack stagger">
                   {rows.map((f) => {
                     const s = studentOf(f.student_id);
                     if (!s) return null;

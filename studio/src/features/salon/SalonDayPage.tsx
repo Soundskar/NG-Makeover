@@ -1,4 +1,4 @@
-import { CheckCircle2, ChevronLeft, ChevronRight, Lock, Plus, Share2 } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, ChevronLeft, ChevronRight, Lock, Plus, Share2 } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useTeamNames } from '../../auth/auth';
 import { Empty, Loaded, Money, Page, TopBar } from '../../components/ui';
@@ -49,7 +49,7 @@ export default function SalonDayPage() {
               <>
                 <div className="card stack" style={{ gap: 4 }}>
                   <div className="stat-label">{t('total')}</div>
-                  <Money n={s.total} className="stat-value" />
+                  <Money n={s.total} className="stat-value" animate />
                   <div className="stat-sub num">
                     {t('cash')} {formatINR(s.cash)} · {t('upi')} {formatINR(s.upi)}{s.card ? ` · ${t('card')} ${formatINR(s.card)}` : ''}
                   </div>
@@ -57,9 +57,11 @@ export default function SalonDayPage() {
                 </div>
 
                 {closing.data ? (
-                  <Link to={`/salon/close?day=${day}`} className="notice notice-info" style={{ textDecoration: 'none' }}>
-                    <CheckCircle2 />
-                    <span>{t('salon_closed', { diff: diffText(closing.data.counted_cash - closing.data.expected_cash, t) })}</span>
+                  <Link to={`/salon/close?day=${day}`}
+                    className={`notice ${closing.data.counted_cash === closing.data.expected_cash ? 'notice-success' : 'notice-warning'}`}>
+                    {closing.data.counted_cash === closing.data.expected_cash ? <CheckCircle2 /> : <AlertTriangle />}
+                    <span className="grow">{t('salon_closed', { diff: diffText(closing.data.counted_cash - closing.data.expected_cash, t) })}</span>
+                    <ChevronRight />
                   </Link>
                 ) : s.count > 0 && (
                   <Link to={`/salon/close?day=${day}`} className="btn btn-primary btn-block btn-lg">
@@ -88,7 +90,7 @@ export default function SalonDayPage() {
                   <h2 className="section-title">{t('salon_entries_title')}</h2>
                   {all.length === 0
                     ? <Empty title={t('salon_empty')} />
-                    : all.map((v) => <VisitCard key={v.id} v={v} showCreator canCancel />)}
+                    : <div className="stack stagger">{all.map((v) => <VisitCard key={v.id} v={v} showCreator canCancel />)}</div>}
                 </section>
 
                 {s.count > 0 && (

@@ -3,7 +3,7 @@ import { ArrowLeft, ArrowRight, Banknote, Check, ChevronDown, CreditCard, Landma
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useTeam } from '../../auth/auth';
-import { Choices, ErrorBox, Field, Loaded, Money, MoneyInput, Page, PhoneInput, TopBar, useToast } from '../../components/ui';
+import { CheckRow, Choices, ErrorBox, Field, Loaded, Money, MoneyInput, Page, PhoneInput, TopBar, useToast } from '../../components/ui';
 import { useI18n } from '../../i18n/i18n';
 import { addMonthsFractional, formatTime, todayIST, weekdayName } from '../../lib/dates';
 import { formatINR } from '../../lib/money';
@@ -149,23 +149,19 @@ export default function AdmissionPage() {
             <strong>{titles[step - 1]}</strong>
             <span className="muted small">{t('adm_step', { n: step, of: 4 })}</span>
           </div>
-          <div className="bar"><span style={{ width: `${step * 25}%` }} /></div>
+          <div className="bar"><span style={{ width: `${step * 25}%`, animation: 'none' }} /></div>
           {existingId && existing.data && <p className="muted">{existing.data.full_name}</p>}
         </div>
 
         {step === 1 && (
-          <div className="stack">
+          <div className="stack" key="s1" style={{ animation: 'row-in 0.25s' }}>
             <Field label={t('full_name')} htmlFor="n">
               <input id="n" className="input" value={name} onChange={(e) => setName(e.target.value)} autoComplete="off" autoCapitalize="words" />
             </Field>
             <Field label={t('phone')} htmlFor="ph" error={phone && !phoneOk ? t('phone_invalid') : null}>
               <PhoneInput id="ph" value={phone} onChange={setPhone} />
             </Field>
-            <label className="row" style={{ minHeight: 44, fontWeight: 600 }}>
-              <input type="checkbox" checked={waSame} onChange={(e) => setWaSame(e.target.checked)}
-                style={{ width: 22, height: 22, accentColor: 'var(--primary)' }} />
-              {t('whatsapp_same')}
-            </label>
+            <CheckRow checked={waSame} onChange={setWaSame} label={t('whatsapp_same')} />
             {!waSame && (
               <Field label={t('whatsapp_number')} htmlFor="wa">
                 <PhoneInput id="wa" value={wa} onChange={setWa} />
@@ -182,10 +178,10 @@ export default function AdmissionPage() {
               </div>
             </div>
             <button type="button" className="btn btn-secondary btn-block" aria-expanded={moreOpen} onClick={() => setMoreOpen((v) => !v)}>
-              {t('more_details')} <ChevronDown style={{ transform: moreOpen ? 'rotate(180deg)' : undefined }} />
+              {t('more_details')} <ChevronDown style={{ transform: moreOpen ? 'rotate(180deg)' : undefined, transition: 'transform 0.25s' }} />
             </button>
             {moreOpen && (
-              <div className="card stack">
+              <div className="card stack" style={{ animation: 'row-in 0.25s' }}>
                 <Field label={t('dob')} htmlFor="dob">
                   <input id="dob" type="date" className="input" value={d.dob} onChange={(e) => setD({ ...d, dob: e.target.value })} />
                 </Field>
@@ -219,7 +215,7 @@ export default function AdmissionPage() {
         {step === 2 && (
           <Loaded q={courses}>
             {({ courses: list }) => (
-              <div className="stack">
+              <div className="stack" style={{ animation: 'row-in 0.25s' }}>
                 <div className="stack" role="radiogroup" aria-label={t('adm_step_course')}>
                   {list.filter((c) => c.active).map((c) => (
                     <button key={c.id} type="button" role="radio" aria-checked={courseId === c.id} className="card-link"
@@ -250,7 +246,7 @@ export default function AdmissionPage() {
         {step === 3 && (
           <Loaded q={settings}>
             {({ slots }) => (
-              <div className="stack-lg">
+              <div className="stack-lg" style={{ animation: 'row-in 0.25s' }}>
                 <div className="field">
                   <span className="field-label">{t('days')}</span>
                   <div className="chips" style={{ flexWrap: 'wrap' }}>
@@ -305,7 +301,7 @@ export default function AdmissionPage() {
         )}
 
         {step === 4 && course && agreed != null && (
-          <div className="stack-lg">
+          <div className="stack-lg" style={{ animation: 'row-in 0.25s' }}>
             <div className="card stack">
               <div className="row-between">
                 <span className="muted">{t('list_fee')}</span>
@@ -327,11 +323,7 @@ export default function AdmissionPage() {
                   </Field>
                 </>
               )}
-              <label className="row" style={{ minHeight: 44, fontWeight: 600 }}>
-                <input type="checkbox" checked={kit} onChange={(e) => setKit(e.target.checked)}
-                  style={{ width: 22, height: 22, accentColor: 'var(--primary)' }} />
-                {t('kit_included')}
-              </label>
+              <CheckRow checked={kit} onChange={setKit} label={t('kit_included')} />
             </div>
 
             <section className="stack">
@@ -371,7 +363,7 @@ export default function AdmissionPage() {
               {t('next')} <ArrowRight />
             </button>
           ) : (
-            <button type="button" className="btn btn-primary btn-lg grow" disabled={!valid[4] || save.isPending} onClick={() => save.mutate()}>
+            <button type="button" className="btn btn-primary btn-lg grow" disabled={!valid[4] || save.isPending} aria-busy={save.isPending} onClick={() => save.mutate()}>
               <Check /> {t('adm_save')}
             </button>
           )}

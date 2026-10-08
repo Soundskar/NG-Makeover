@@ -1,4 +1,4 @@
-import { BookOpen, ChevronRight, Clock, HardDriveDownload, History, IndianRupee, ListChecks, UserRound, Users } from 'lucide-react';
+import { ChevronRight, Clock, GraduationCap, HardDriveDownload, History, IndianRupee, ListChecks, Scissors, UserRound, Users } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { Page, TopBar } from '../../components/ui';
@@ -7,8 +7,8 @@ import { useI18n, type TKey } from '../../i18n/i18n';
 const items: { to: string; label: TKey; sub: TKey; icon: ReactNode }[] = [
   { to: '/fees', label: 'followup_title', sub: 'more_fees_sub', icon: <IndianRupee /> },
   { to: '/classes', label: 'classes_title', sub: 'more_classes_sub', icon: <ListChecks /> },
-  { to: '/more/catalog', label: 'catalog_title', sub: 'more_catalog_sub', icon: <BookOpen /> },
-  { to: '/more/courses', label: 'courses_title', sub: 'more_courses_sub', icon: <BookOpen /> },
+  { to: '/more/catalog', label: 'catalog_title', sub: 'more_catalog_sub', icon: <Scissors /> },
+  { to: '/more/courses', label: 'courses_title', sub: 'more_courses_sub', icon: <GraduationCap /> },
   { to: '/more/team', label: 'team_title', sub: 'more_team_sub', icon: <Users /> },
   { to: '/more/slots', label: 'slots_title', sub: 'more_slots_sub', icon: <Clock /> },
   { to: '/more/backup', label: 'backup_title', sub: 'more_backup_sub', icon: <HardDriveDownload /> },

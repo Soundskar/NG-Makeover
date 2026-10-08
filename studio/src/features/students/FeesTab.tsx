@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Ban, Bell, Check, Pencil, Plus, Receipt } from 'lucide-react';
+import { Ban, Bell, Check, ChevronRight, Pencil, Plus, Receipt } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { Choices, Confirm, ErrorBox, Field, Money, MoneyInput, Sheet, useToast } from '../../components/ui';
+import { Choices, Confirm, ErrorBox, Field, Money, MoneyInput, Sheet, SheetCloseButton, useToast } from '../../components/ui';
 import { useI18n } from '../../i18n/i18n';
 import { formatDate, todayIST } from '../../lib/dates';
 import { formatINR, summarizeFees } from '../../lib/money';
@@ -30,6 +30,7 @@ export function FeesTab({ data, enrollment, course, receiptFor }: {
   const [planOpen, setPlanOpen] = useState(false);
   const [receipt, setReceipt] = useState<Payment | null>(null);
   const [voiding, setVoiding] = useState<Payment | null>(null);
+  const [picked, setPicked] = useState<Payment | null>(null);
 
   // Straight after an admission with a first payment, offer its receipt.
   useEffect(() => {
@@ -62,7 +63,7 @@ export function FeesTab({ data, enrollment, course, receiptFor }: {
             {t(`fee_status_${summary.status}`)}
           </span>
         </div>
-        <div className="num"><span className="stat-value">{formatINR(summary.paid)}</span> <span className="muted">/ {formatINR(summary.agreedFee)}</span></div>
+        <div className="num"><Money n={summary.paid} className="stat-value" animate /> <span className="muted">/ {formatINR(summary.agreedFee)}</span></div>
         <div className={`bar ${summary.status === 'clear' ? 'success' : ''}`}><span style={{ width: `${pct}%` }} /></div>
         {summary.balance > 0 && <div className="stat-sub">{t('fee_balance_amt', { amount: formatINR(summary.balance) })}</div>}
         {summary.overdueAmount > 0 && (
@@ -96,7 +97,10 @@ export function FeesTab({ data, enrollment, course, receiptFor }: {
             <div key={i.id} className="list-item">
               <span className="grow">
                 <span className="title" style={{ display: 'block' }}>{i.label || t('installment_n', { n: n + 1 })}</span>
-                <span className="sub">{formatDate(i.due_date, lang)}{i.status === 'partial' ? ` · ${t('paid_amt', { amount: formatINR(i.paid) })}` : ''}</span>
+                <span className="sub">
+                  {formatDate(i.due_date, lang)}
+                  {i.paid > 0 && i.remaining > 0 ? ` · ${t('inst_paid_left', { paid: formatINR(i.paid), left: formatINR(i.remaining) })}` : ''}
+                </span>
               </span>
               <span className="end stack" style={{ gap: 2, alignItems: 'flex-end' }}>
                 <Money n={i.amount} className="title" />
@@ -111,21 +115,26 @@ export function FeesTab({ data, enrollment, course, receiptFor }: {
         <h2 className="section-title">{t('payments')}</h2>
         {payments.length === 0 ? <p className="muted">{t('payments_none')}</p> : (
           <div className="list">
-            {payments.map((p) => (
-              <div key={p.id} className="list-item" style={{ opacity: p.voided ? 0.6 : 1 }}>
+            {payments.map((p) => {
+              const body = (
                 <span className="grow">
-                  <span className="title" style={{ display: 'block' }}><Money n={p.amount} /> · {t(p.mode)}</span>
-                  <span className="sub num">{formatDate(p.paid_on, lang)} · {p.receipt_no}</span>
+                  <span className="title" style={{ display: 'block', textDecoration: p.voided ? 'line-through' : undefined }}>
+                    <Money n={p.amount} /> · {t(p.mode)}
+                  </span>
+                  <span className="sub num" style={{ display: 'block' }}>{formatDate(p.paid_on, lang)} · {p.receipt_no}</span>
                   {p.voided && <span className="badge badge-danger">{t('payment_cancelled')}: {p.void_reason}</span>}
                 </span>
-                {!p.voided && (
-                  <span className="end row" style={{ gap: 0 }}>
-                    <button className="icon-btn" aria-label={t('send_receipt')} onClick={() => setReceipt(p)}><Receipt /></button>
-                    <button className="icon-btn" aria-label={t('cancel_payment')} onClick={() => setVoiding(p)}><Ban /></button>
-                  </span>
-                )}
-              </div>
-            ))}
+              );
+              return p.voided ? (
+                <div key={p.id} className="list-item" style={{ opacity: 0.6 }}>{body}</div>
+              ) : (
+                <button key={p.id} className="list-item" aria-label={`${t('payment_options')}: ${formatINR(p.amount)}`} onClick={() => setPicked(p)}>
+                  <span className="avatar" data-tint="5" style={{ width: 40, height: 40 }}><Receipt size={20} /></span>
+                  {body}
+                  <ChevronRight className="chev" />
+                </button>
+              );
+            })}
           </div>
         )}
       </section>
@@ -153,6 +162,20 @@ export function FeesTab({ data, enrollment, course, receiptFor }: {
           })} />
       )}
       {voiding && <VoidPaymentSheet payment={voiding} onClose={() => setVoiding(null)} />}
+      {picked && (
+        <Sheet open onClose={() => setPicked(null)} title={`${formatINR(picked.amount)} · ${t(picked.mode)}`}>
+          <div className="stack">
+            <p className="muted num">{formatDate(picked.paid_on, lang)} · {picked.receipt_no}{picked.note ? ` · ${picked.note}` : ''}</p>
+            <button className="btn btn-whatsapp btn-lg btn-block" onClick={() => { setReceipt(picked); setPicked(null); }}>
+              <Receipt /> {t('receipt_show')}
+            </button>
+            <button className="btn btn-danger btn-block" onClick={() => { setVoiding(picked); setPicked(null); }}>
+              <Ban /> {t('cancel_payment')}
+            </button>
+            <SheetCloseButton label={t('close')} />
+          </div>
+        </Sheet>
+      )}
     </div>
   );
 }
@@ -195,7 +218,7 @@ function RecordPaymentSheet({ enrollmentId, suggested, max, onClose, onSaved }: 
           <input id="rn" className="input" value={note} onChange={(e) => setNote(e.target.value)} />
         </Field>
         {m.error && <ErrorBox error={m.error} />}
-        <button className="btn btn-primary btn-lg btn-block" disabled={!amount || over || m.isPending} onClick={() => setConfirm(true)}>
+        <button className="btn btn-primary btn-lg btn-block" disabled={!amount || over || m.isPending} aria-busy={m.isPending} onClick={() => setConfirm(true)}>
           <Check /> {t('save')}
         </button>
       </div>
@@ -221,7 +244,7 @@ function ReceiptSheet({ payment, phone, text, onClose }: {
             <Receipt /> {t('send_receipt')}
           </a>
         ) : <p className="muted">{t('no_phone')}</p>}
-        <button className="btn btn-secondary btn-block" onClick={onClose}>{t('close')}</button>
+        <SheetCloseButton label={t('close')} />
       </div>
     </Sheet>
   );
@@ -230,12 +253,14 @@ function ReceiptSheet({ payment, phone, text, onClose }: {
 function VoidPaymentSheet({ payment, onClose }: { payment: Payment; onClose: () => void }) {
   const { t } = useI18n();
   const qc = useQueryClient();
+  const toast = useToast();
   const [reason, setReason] = useState('');
   const m = useMutation({
     mutationFn: async () => must(await supabase.from('payments')
       .update({ voided: true, void_reason: reason.trim() }).eq('id', payment.id).select().single()),
     onSuccess: () => {
       for (const k of ['student', 'fee-status', 'home']) qc.invalidateQueries({ queryKey: [k] });
+      toast({ kind: 'info', text: t('payment_cancelled_done') });
       onClose();
     },
   });
@@ -244,10 +269,10 @@ function VoidPaymentSheet({ payment, onClose }: { payment: Payment; onClose: () 
       <div className="stack">
         <p className="muted">{t('cancel_payment_body', { amount: formatINR(payment.amount), no: payment.receipt_no ?? '' })}</p>
         <Field label={t('entry_cancel_reason')} htmlFor="vr">
-          <input id="vr" className="input" value={reason} onChange={(e) => setReason(e.target.value)} />
+          <input id="vr" className="input" value={reason} onChange={(e) => setReason(e.target.value)} autoFocus />
         </Field>
         {m.error && <ErrorBox error={m.error} />}
-        <button className="btn btn-danger btn-lg btn-block" disabled={!reason.trim() || m.isPending} onClick={() => m.mutate()}>
+        <button className="btn btn-danger btn-lg btn-block" disabled={!reason.trim() || m.isPending} aria-busy={m.isPending} onClick={() => m.mutate()}>
           <Ban /> {t('cancel_payment')}
         </button>
       </div>
@@ -264,6 +289,7 @@ function PlanSheet({ enrollment, fee, discountNote, installments, paid, onClose 
   const [agreed, setAgreed] = useState<number | null>(fee);
   const [note, setNote] = useState(discountNote);
   const [rows, setRows] = useState<PlanRow[]>(() => toRows(installments));
+  const toast = useToast();
   const m = useMutation({
     mutationFn: async () => must(await supabase.rpc('update_fee_plan', {
       p_enrollment: enrollment.id, p_agreed_fee: agreed, p_discount_note: note,
@@ -271,6 +297,7 @@ function PlanSheet({ enrollment, fee, discountNote, installments, paid, onClose 
     })),
     onSuccess: () => {
       for (const k of ['student', 'fee-status', 'home']) qc.invalidateQueries({ queryKey: [k] });
+      toast({ kind: 'success', text: t('plan_saved') });
       onClose();
     },
   });
@@ -285,7 +312,7 @@ function PlanSheet({ enrollment, fee, discountNote, installments, paid, onClose 
         </Field>
         <PlanEditor total={agreed ?? 0} rows={rows} onChange={setRows} firstDate={enrollment.start_date} />
         {m.error && <ErrorBox error={m.error} />}
-        <button className="btn btn-primary btn-lg btn-block" disabled={agreed == null || !planIsValid(rows, agreed) || m.isPending}
+        <button className="btn btn-primary btn-lg btn-block" disabled={agreed == null || !planIsValid(rows, agreed) || m.isPending} aria-busy={m.isPending}
           onClick={() => m.mutate()}>
           <Check /> {t('save')}
         </button>

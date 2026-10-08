@@ -57,7 +57,7 @@ export default function BackupPage() {
           )}
         </Loaded>
         {backup.error && <ErrorBox error={backup.error} />}
-        <button className="btn btn-primary btn-lg btn-block" disabled={backup.isPending} onClick={() => backup.mutate()}>
+        <button className="btn btn-primary btn-lg btn-block" disabled={backup.isPending} aria-busy={backup.isPending} onClick={() => backup.mutate()}>
           <HardDriveDownload /> {backup.isPending ? t('backup_working') : t('backup_now')}
         </button>
         <p className="muted small">{t('backup_where')}</p>

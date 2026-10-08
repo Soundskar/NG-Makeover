@@ -75,8 +75,7 @@ function RoleChecks({ roles, onChange }: {
     <div className="list">
       {items.map(([k, label, sub]) => (
         <label key={k} className="list-item" style={{ cursor: 'pointer' }}>
-          <input type="checkbox" checked={roles[k]} onChange={(e) => onChange({ ...roles, [k]: e.target.checked })}
-            style={{ width: 24, height: 24, accentColor: 'var(--primary)', flexShrink: 0 }} />
+          <input type="checkbox" checked={roles[k]} onChange={(e) => onChange({ ...roles, [k]: e.target.checked })} />
           <span className="grow"><span className="title" style={{ display: 'block' }}>{label}</span><span className="sub">{sub}</span></span>
         </label>
       ))}
@@ -113,6 +112,9 @@ function AddSheet({ onClose }: { onClose: () => void }) {
     return (
       <Sheet open onClose={onClose} title={t('team_created')}>
         <div className="stack">
+          <div className="notice notice-success" style={{ animation: 'row-in 0.3s' }}>
+            <span className="grow">{t('team_created')}</span>
+          </div>
           <div className="card stack" style={{ gap: 4 }}>
             <span className="muted small">{t('username')}</span><strong className="num" style={{ fontSize: '1.25rem' }}>{user}</strong>
             <span className="muted small">{t('pin')}</span><strong className="num" style={{ fontSize: '1.25rem', letterSpacing: '0.15em' }}>{pin}</strong>
@@ -147,7 +149,7 @@ function AddSheet({ onClose }: { onClose: () => void }) {
         <span className="field-label">{t('team_roles')}</span>
         <RoleChecks roles={roles} onChange={setRoles} />
         {m.error && <ErrorBox error={m.error} />}
-        <button className="btn btn-primary btn-lg btn-block" disabled={!valid || m.isPending} onClick={() => m.mutate()}>
+        <button className="btn btn-primary btn-lg btn-block" disabled={!valid || m.isPending} aria-busy={m.isPending} onClick={() => m.mutate()}>
           <Check /> {t('team_create')}
         </button>
       </div>
@@ -192,7 +194,7 @@ function PersonSheet({ person, onClose }: { person: Profile; onClose: () => void
           <span className="field-label">{t('team_roles')}</span>
           <RoleChecks roles={roles} onChange={(r) => setRoles(self ? { ...r, is_owner: true } : r)} />
           {save.error && <ErrorBox error={save.error} />}
-          <button className="btn btn-primary btn-block" disabled={!name.trim() || save.isPending} onClick={() => save.mutate()}>
+          <button className="btn btn-primary btn-block" disabled={!name.trim() || save.isPending} aria-busy={save.isPending} onClick={() => save.mutate()}>
             <Check /> {t('save')}
           </button>
         </div>
@@ -205,7 +207,7 @@ function PersonSheet({ person, onClose }: { person: Profile; onClose: () => void
             <button type="button" className="btn btn-secondary" onClick={() => setPin(randomPin())}>{t('pin_new')}</button>
           </div>
           {reset.error && <ErrorBox error={reset.error} />}
-          <button className="btn btn-soft btn-block" disabled={pin.length !== 6 || reset.isPending} onClick={() => reset.mutate()}>
+          <button className="btn btn-soft btn-block" disabled={pin.length !== 6 || reset.isPending} aria-busy={reset.isPending} onClick={() => reset.mutate()}>
             <KeyRound /> {t('pin_reset')}
           </button>
         </div>
@@ -213,7 +215,7 @@ function PersonSheet({ person, onClose }: { person: Profile; onClose: () => void
         {!self && (
           <div className="stack">
             {toggle.error && <ErrorBox error={toggle.error} />}
-            <button className={`btn btn-block ${person.active ? 'btn-danger' : 'btn-secondary'}`} disabled={toggle.isPending} onClick={() => toggle.mutate()}>
+            <button className={`btn btn-block ${person.active ? 'btn-danger' : 'btn-secondary'}`} disabled={toggle.isPending} aria-busy={toggle.isPending} onClick={() => toggle.mutate()}>
               <Power /> {person.active ? t('login_switch_off') : t('login_switch_on')}
             </button>
             {person.active && <p className="muted small">{t('login_switch_off_hint')}</p>}

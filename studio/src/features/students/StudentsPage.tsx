@@ -1,6 +1,6 @@
 import { AlertCircle, ChevronRight, UserPlus } from 'lucide-react';
-import { useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useMemo } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useMe } from '../../auth/auth';
 import { Empty, Initials, Loaded, Page, SearchInput, TopBar } from '../../components/ui';
 import { useI18n } from '../../i18n/i18n';
@@ -17,8 +17,18 @@ export default function StudentsPage() {
   const courses = useCourses();
   const settings = useSettings();
   const fees = useFeeStatus(me.is_owner);
-  const [search, setSearch] = useState('');
-  const [tab, setTab] = useState<StudentStatus>('active');
+  // Search and tab live in the address, so coming Back from a student keeps them.
+  const [params, setParams] = useSearchParams();
+  const search = params.get('q') ?? '';
+  const tab: StudentStatus = params.get('tab') === 'completed' || params.get('tab') === 'left' ? params.get('tab') as StudentStatus : 'active';
+  const update = (q: string, tb: StudentStatus) => {
+    const next: Record<string, string> = {};
+    if (q) next.q = q;
+    if (tb !== 'active') next.tab = tb;
+    setParams(next, { replace: true });
+  };
+  const setSearch = (q: string) => update(q, tab);
+  const setTab = (tb: StudentStatus) => update(search, tb);
 
   const feeByEnrollment = useMemo(() => {
     const m = new Map<string, FeeStatus>();
@@ -89,24 +99,22 @@ export default function StudentsPage() {
                   const overdue = f.reduce((n, x) => n + x.overdue_amount, 0);
                   const balance = f.reduce((n, x) => n + x.balance, 0);
                   const nextDue = f.map((x) => x.next_due_date).filter(Boolean).sort()[0];
+                  const badge = !me.is_owner || f.length === 0 ? null
+                    : overdue > 0 ? <span className="badge badge-danger">{t('fee_overdue_amt', { amount: formatINR(overdue) })}</span>
+                      : balance === 0 ? <span className="badge badge-success">{t('fee_clear')}</span>
+                        : nextDue && nextDue <= today ? <span className="badge badge-warning">{t('fee_due_today')}</span>
+                          : nextDue ? <span className="badge badge-neutral">{t('fee_next_short', { date: formatDate(nextDue, lang, false) })}</span> : null;
                   return (
                     <Link key={s.id} to={`/students/${s.id}`} className="list-item">
                       <Initials name={s.full_name} />
                       <span className="grow">
                         <span className="title" style={{ display: 'block' }}>{s.full_name}</span>
-                        <span className="sub">
+                        <span className="sub" style={{ display: 'block' }}>
                           {courseNames}
                           {slot && ` · ${formatTime(slot.start_time, lang)}`}
                         </span>
+                        {badge && <span style={{ display: 'block', marginTop: 4 }}>{badge}</span>}
                       </span>
-                      {me.is_owner && f.length > 0 && (
-                        <span className="end">
-                          {overdue > 0 ? <span className="badge badge-danger">{t('fee_overdue_amt', { amount: formatINR(overdue) })}</span>
-                            : balance === 0 ? <span className="badge badge-success">{t('fee_clear')}</span>
-                              : nextDue && nextDue <= today ? <span className="badge badge-warning">{t('fee_due_today')}</span>
-                                : nextDue ? <span className="badge badge-neutral">{formatDate(nextDue, lang, false)}</span> : null}
-                        </span>
-                      )}
                       <ChevronRight className="chev" />
                     </Link>
                   );
