@@ -1,8 +1,10 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import { Navigate, Outlet, Route, Routes } from 'react-router-dom';
 import { useAuth } from './auth/auth';
+import { devMode, devRole, devSignIn } from './auth/devMode';
 import { InactivePage, LoginPage, NotConfiguredPage } from './auth/LoginPage';
 import { BottomNav } from './components/BottomNav';
+import { DevBar } from './components/DevBar';
 import { OfflineBanner, Spinner } from './components/ui';
 import { configured } from './lib/supabase';
 import type { Profile } from './lib/types';
@@ -30,6 +32,7 @@ const HistoryPage = lazy(() => import('./features/settings/HistoryPage'));
 function Shell() {
   return (
     <div className="shell">
+      {devMode && <DevBar />}
       <OfflineBanner />
       <Suspense fallback={<Spinner />}>
         <Outlet />
@@ -49,9 +52,14 @@ function homeFor(p: Profile): string {
 export function App() {
   const { status, profile } = useAuth();
 
+  // Test mode: no login screen, sign straight in as the last-used test account.
+  useEffect(() => {
+    if (devMode && status === 'signed_out') void devSignIn(devRole());
+  }, [status]);
+
   if (!configured) return <NotConfiguredPage />;
   if (status === 'loading') return <Spinner />;
-  if (status === 'signed_out') return <LoginPage />;
+  if (status === 'signed_out') return devMode ? <Spinner /> : <LoginPage />;
   if (status === 'inactive' || !profile) return <InactivePage />;
 
   const owner = profile.is_owner;

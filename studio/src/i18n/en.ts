@@ -276,6 +276,7 @@ export const en = {
   msg_receipt_paid: 'Paid so far: {paid} of {fee}',
   msg_receipt_balance: 'Balance: {amount}',
   msg_receipt_clear: 'Fees fully paid.',
+  msg_receipt_overdue: 'Pending now: {amount} (due since {date})',
   msg_receipt_next: 'Next installment: {amount} on {date}',
   msg_thanks: 'Thank you!',
   msg_remind_overdue: 'Hello {name}, a gentle reminder from {studio}: your {course} installment of {amount} was due on {date}. Please pay when you can. Thank you!',

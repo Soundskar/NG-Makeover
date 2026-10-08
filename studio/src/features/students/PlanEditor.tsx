@@ -36,29 +36,32 @@ export function PlanEditor({ total, rows, onChange, firstDate }: {
         <button type="button" className="chip" onClick={() => preset(4)}>{t('plan_parts', { n: 4 })}</button>
       </div>
 
-      <div className="list">
+      <div className="stack">
         {rows.map((r, i) => (
-          <div key={r.key} className="list-item" style={{ gap: 8 }}>
-            <span className="muted num" style={{ width: 20 }}>{i + 1}.</span>
-            <input
-              type="date"
-              className="input"
-              style={{ flex: '1 1 0', minWidth: 0, padding: '12px 8px' }}
-              aria-label={t('plan_due_date', { n: i + 1 })}
-              value={r.due_date}
-              onChange={(e) => onChange(rows.map((x) => (x.key === r.key ? { ...x, due_date: e.target.value } : x)))}
-            />
-            <div style={{ flex: '1 1 0', minWidth: 0 }}>
+          <div key={r.key} className="card stack" style={{ gap: 6, padding: 12 }}>
+            <div className="row-between">
+              <span className="field-label">{t('installment_n', { n: i + 1 })}</span>
+              {rows.length > 1 && (
+                <button type="button" className="icon-btn" style={{ width: 40, height: 40 }} aria-label={t('remove')}
+                  onClick={() => onChange(rows.filter((x) => x.key !== r.key))}>
+                  <X />
+                </button>
+              )}
+            </div>
+            <div className="plan-row">
+              <input
+                type="date"
+                className="input"
+                aria-label={t('plan_due_date', { n: i + 1 })}
+                value={r.due_date}
+                onChange={(e) => onChange(rows.map((x) => (x.key === r.key ? { ...x, due_date: e.target.value } : x)))}
+              />
               <MoneyInput
                 aria-label={t('plan_amount', { n: i + 1 })}
                 value={r.amount}
                 onChange={(n) => onChange(rows.map((x) => (x.key === r.key ? { ...x, amount: n } : x)))}
               />
             </div>
-            <button type="button" className="icon-btn" aria-label={t('remove')} disabled={rows.length === 1}
-              onClick={() => onChange(rows.filter((x) => x.key !== r.key))}>
-              <X />
-            </button>
           </div>
         ))}
       </div>

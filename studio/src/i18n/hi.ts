@@ -278,6 +278,7 @@ export const hi: Record<TKey, string> = {
   msg_receipt_paid: 'अब तक जमा: {fee} में से {paid}',
   msg_receipt_balance: 'बाकी: {amount}',
   msg_receipt_clear: 'पूरी फीस जमा हो गई।',
+  msg_receipt_overdue: 'अभी बकाया: {amount} ({date} से)',
   msg_receipt_next: 'अगली किस्त: {amount}, {date} को',
   msg_thanks: 'धन्यवाद!',
   msg_remind_overdue: 'नमस्ते {name}, {studio} की ओर से याद दिला रहे हैं: {course} की {amount} की किस्त {date} को देनी थी। कृपया जल्द जमा कर दें। धन्यवाद!',

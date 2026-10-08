@@ -21,6 +21,10 @@ export function receiptMessage(o: {
     t('msg_receipt_paid', { paid: formatINR(o.fees.paid), fee: formatINR(o.fees.agreedFee) }),
     o.fees.balance > 0 ? t('msg_receipt_balance', { amount: formatINR(o.fees.balance) }) : t('msg_receipt_clear'),
   ];
+  const late = o.fees.installments.find((i) => i.status === 'overdue');
+  if (late) {
+    lines.push(t('msg_receipt_overdue', { amount: formatINR(o.fees.overdueAmount), date: formatDate(late.due_date, lang) }));
+  }
   if (o.fees.nextDue) {
     lines.push(t('msg_receipt_next', { amount: formatINR(o.fees.nextDue.amount), date: formatDate(o.fees.nextDue.date, lang) }));
   }

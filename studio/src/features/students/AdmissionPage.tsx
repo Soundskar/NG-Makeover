@@ -67,6 +67,8 @@ export default function AdmissionPage() {
   const [discountNote, setDiscountNote] = useState('');
   const [kit, setKit] = useState(false);
   const [rows, setRows] = useState<PlanRow[]>([]);
+  // Until Mom edits the plan herself, it stays "full fee on the start date".
+  const [planTouched, setPlanTouched] = useState(false);
   const [payNow, setPayNow] = useState(true);
   const [payAmount, setPayAmount] = useState<number | null>(null);
   const [payMode, setPayMode] = useState<PayMode>('cash');
@@ -83,10 +85,13 @@ export default function AdmissionPage() {
   useEffect(() => {
     if (!course) return;
     setAgreed(course.list_fee);
-    setRows(toRows([{ due_date: startDate, amount: course.list_fee }]));
+    setPlanTouched(false);
     // Only when the course changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [courseId]);
+  useEffect(() => {
+    if (!planTouched && agreed != null) setRows(toRows([{ due_date: startDate, amount: agreed }]));
+  }, [agreed, startDate, planTouched]);
   useEffect(() => {
     if (trainers.length === 1 && trainerIds.length === 0) setTrainerIds([trainers[0]!.id]);
   }, [trainers, trainerIds.length]);
@@ -309,7 +314,7 @@ export default function AdmissionPage() {
               <Field label={t('agreed_fee')} htmlFor="af">
                 <MoneyInput id="af" value={agreed} onChange={(n) => {
                   setAgreed(n ?? 0);
-                  setRows(toRows([{ due_date: startDate, amount: n ?? 0 }]));
+                  setPlanTouched(false);
                 }} />
               </Field>
               {agreed < course.list_fee && (
@@ -331,7 +336,8 @@ export default function AdmissionPage() {
 
             <section className="stack">
               <h2 className="section-title">{t('plan')}</h2>
-              <PlanEditor total={agreed} rows={rows} onChange={setRows} firstDate={startDate} />
+              <PlanEditor total={agreed} rows={rows} firstDate={startDate}
+                onChange={(r) => { setRows(r); setPlanTouched(true); }} />
             </section>
 
             <section className="stack">
