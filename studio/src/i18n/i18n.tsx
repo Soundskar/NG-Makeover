@@ -43,7 +43,8 @@ export function I18nProvider({ children }: { children: ReactNode }) {
   }, [lang]);
 
   const t = useCallback<TFn>((key, vars) => {
-    let s: string = dicts[lang][key] ?? en[key];
+    // A missing word shows its key rather than breaking the screen.
+    let s: string = dicts[lang][key] ?? en[key] ?? key;
     if (vars) for (const [k, v] of Object.entries(vars)) s = s.replaceAll(`{${k}}`, String(v));
     return s;
   }, [lang]);
