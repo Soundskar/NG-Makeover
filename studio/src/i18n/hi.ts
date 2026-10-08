@@ -64,6 +64,7 @@ export const hi: Record<TKey, string> = {
   login_title: 'स्वागत है',
   login_sub: 'NG Studio में लॉग इन करें',
   username: 'यूज़रनेम',
+  login_user: 'यूज़रनेम या ईमेल',
   pin: 'पिन',
   login_button: 'लॉग इन',
   login_failed: 'यूज़रनेम या पिन गलत है।',

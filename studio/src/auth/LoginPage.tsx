@@ -48,7 +48,7 @@ export function LoginPage() {
           <p className="muted">{t('login_sub')}</p>
         </div>
         <form className="card stack" onSubmit={submit}>
-          <Field label={t('username')} htmlFor="u">
+          <Field label={t('login_user')} htmlFor="u">
             <input
               id="u"
               className="input"

@@ -10,10 +10,14 @@ export const supabase = createClient(url ?? 'http://localhost:54321', key ?? 'no
   auth: { persistSession: true, autoRefreshToken: true, storageKey: 'ngstudio-auth' },
 });
 
-// Logins are a username + PIN. Supabase needs an email, so each username maps
-// to an address on a reserved domain that can never receive mail.
+// Staff log in with a username + PIN. Supabase needs an email, so each username
+// maps to an address on a reserved domain that can never receive mail. Anyone
+// whose login was made with a real email (like the owner's) types that instead.
 export const LOGIN_DOMAIN = 'ngstudio.invalid';
-export const emailFor = (username: string) => `${username.trim().toLowerCase()}@${LOGIN_DOMAIN}`;
+export const emailFor = (login: string) => {
+  const s = login.trim().toLowerCase();
+  return s.includes('@') ? s : `${s}@${LOGIN_DOMAIN}`;
+};
 
 /** Unwraps a Supabase result, throwing its error so React Query can show it. */
 export function must<T>(res: { data: T | null; error: { message: string } | null }): T {

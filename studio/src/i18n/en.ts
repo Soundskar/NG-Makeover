@@ -62,6 +62,7 @@ export const en = {
   login_title: 'Welcome',
   login_sub: 'Log in to NG Studio',
   username: 'Username',
+  login_user: 'Username or email',
   pin: 'PIN',
   login_button: 'Log in',
   login_failed: 'Wrong username or PIN.',
