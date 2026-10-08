@@ -1,7 +1,7 @@
 import { lazy, Suspense, useEffect } from 'react';
 import { Navigate, Outlet, Route, Routes } from 'react-router-dom';
 import { useAuth } from './auth/auth';
-import { devMode, devRole, devSignIn } from './auth/devMode';
+import { devMode, devPaused, devRole, devSignIn } from './auth/devMode';
 import { InactivePage, LoginPage, NotConfiguredPage } from './auth/LoginPage';
 import { BottomNav } from './components/BottomNav';
 import { DevBar } from './components/DevBar';
@@ -32,7 +32,7 @@ const HistoryPage = lazy(() => import('./features/settings/HistoryPage'));
 function Shell() {
   return (
     <div className="shell">
-      {devMode && <DevBar />}
+      {devMode && !devPaused() && <DevBar />}
       <OfflineBanner />
       <Suspense fallback={<Spinner />}>
         <Outlet />
@@ -54,12 +54,12 @@ export function App() {
 
   // Test mode: no login screen, sign straight in as the last-used test account.
   useEffect(() => {
-    if (devMode && status === 'signed_out') void devSignIn(devRole());
+    if (devMode && !devPaused() && status === 'signed_out') void devSignIn(devRole());
   }, [status]);
 
   if (!configured) return <NotConfiguredPage />;
   if (status === 'loading') return <Spinner />;
-  if (status === 'signed_out') return devMode ? <Spinner /> : <LoginPage />;
+  if (status === 'signed_out') return devMode && !devPaused() ? <Spinner /> : <LoginPage />;
   if (status === 'inactive' || !profile) return <InactivePage />;
 
   const owner = profile.is_owner;

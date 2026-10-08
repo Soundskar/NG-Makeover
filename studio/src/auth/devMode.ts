@@ -13,6 +13,28 @@ const password: string | undefined = import.meta.env.DEV ? import.meta.env.VITE_
 export const devMode = import.meta.env.DEV && Boolean(password);
 
 const STORE = 'ngstudio-dev-role';
+const PAUSED = 'ngstudio-dev-paused';
+
+/** Test mode switched off for now, to try the real login screen. */
+export function devPaused(): boolean {
+  try {
+    return localStorage.getItem(PAUSED) === '1';
+  } catch {
+    return false;
+  }
+}
+
+/** Show the real login screen (on = true) or go back to test mode. Reloads the app. */
+export async function setDevPaused(on: boolean): Promise<void> {
+  try {
+    if (on) localStorage.setItem(PAUSED, '1');
+    else localStorage.removeItem(PAUSED);
+  } catch {
+    // Without storage the choice can't stick; test mode stays on.
+  }
+  await supabase.auth.signOut();
+  window.location.assign('/');
+}
 
 export function devRole(): DevRole {
   try {

@@ -3,6 +3,7 @@ import { useState, type FormEvent } from 'react';
 import { ErrorBox, Field } from '../components/ui';
 import { useI18n } from '../i18n/i18n';
 import { useAuth } from './auth';
+import { devMode, setDevPaused } from './devMode';
 
 function LanguageSwitch() {
   const { lang, setLang } = useI18n();
@@ -81,6 +82,11 @@ export function LoginPage() {
           </button>
         </form>
         <p className="center muted small">{t('login_help')}</p>
+        {devMode && (
+          <button className="btn btn-link" style={{ alignSelf: 'center' }} onClick={() => setDevPaused(false)}>
+            Back to test mode
+          </button>
+        )}
       </main>
     </div>
   );

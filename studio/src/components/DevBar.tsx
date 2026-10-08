@@ -1,7 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { DEV_ROLES, devRole, devSignIn, type DevRole } from '../auth/devMode';
+import { DEV_ROLES, devRole, devSignIn, setDevPaused, type DevRole } from '../auth/devMode';
 
 /** Test mode only: shows which test account is signed in and switches between them. */
 export function DevBar() {
@@ -26,6 +26,9 @@ export function DevBar() {
       {DEV_ROLES.map((r) => (
         <button key={r} aria-pressed={r === role} disabled={busy} onClick={() => pick(r)}>{r}</button>
       ))}
+      <button disabled={busy} onClick={() => setDevPaused(true)} title="Sign out and show the real login screen">
+        Login
+      </button>
     </div>
   );
 }
