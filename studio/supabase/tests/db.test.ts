@@ -303,6 +303,27 @@ describe('salon work log: discounts, udhaar, work per person', () => {
     await as('staff', `select void_visit($1, 'Client changed her mind')`, [udhaarVisit]);
     expect(await as('owner', `select * from udhaar_status where visit_id = $1`, [udhaarVisit])).toHaveLength(0);
   });
+
+  it('collects a client\'s udhaar in one go, settling her oldest entries first', async () => {
+    const wax = await serviceId('Rica wax · Full arms');
+    const facial = await serviceId('Hydra facial');
+    const phone = '9833333333';
+    const [older] = await log('owner', {
+      visit_date: '2026-01-05', client_name: 'Kavya', client_phone: phone, paid_udhaar: 350,
+      lines: [{ service_id: wax, price: 350, staff_id: U.staff }],
+    });
+    const [newer] = await log('staff', {
+      client_name: 'Kavya', client_phone: phone, paid_cash: 1000, paid_udhaar: 2000,
+      lines: [{ service_id: facial, price: 3000, staff_id: U.staff }],
+    });
+    await expect(as('staff2', `select collect_udhaar_for_phone($1, 3000, 'upi')`, [phone])).rejects.toThrow(/Only 2350/);
+    await as('staff2', `select collect_udhaar_for_phone($1, 1000, 'upi')`, [phone]);
+    const owed = await as('owner',
+      `select visit_id, outstanding from udhaar_status where client_phone = $1 order by visit_date`, [phone]);
+    expect(owed).toEqual([{ visit_id: older!.id, outstanding: 0 }, { visit_id: newer!.id, outstanding: 1350 }]);
+    expect(await as('staff', `select * from udhaar_for_phone($1)`, [phone])).toHaveLength(1);
+    await expect(as('trainer', `select collect_udhaar_for_phone($1, 10, 'cash')`, [phone])).rejects.toThrow(/Not allowed/);
+  });
 });
 
 describe('academy', () => {
