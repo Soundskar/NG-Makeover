@@ -21,10 +21,10 @@ const SUPABASE_STUB = `
   $$;
   grant usage on schema public, auth to anon, authenticated, service_role;
   grant execute on function auth.uid() to anon, authenticated;
-  -- Supabase's defaults: API roles get table rights; RLS decides the rows.
-  alter default privileges in schema public grant all on tables to anon, authenticated, service_role;
-  alter default privileges in schema public grant all on sequences to anon, authenticated, service_role;
-  alter default privileges in schema public grant execute on functions to anon, authenticated, service_role;
+  -- Like a project created with "Automatically expose new tables" switched off:
+  -- no default table rights for the API roles, so the migrations must grant
+  -- everything the app needs themselves.
+  alter default privileges in schema public revoke execute on functions from public;
 `;
 
 const U = {
