@@ -21,7 +21,9 @@ export default function SalonDayPage() {
   const collected = useUdhaarCollections(day);
   const udhaar = useUdhaarStatus();
   const nameOf = useTeamNames();
-  const collectedToday = sum((collected.data ?? []).filter((c) => !c.voided).map((c) => c.amount));
+  const liveCollections = (collected.data ?? []).filter((c) => !c.voided);
+  const collectedToday = sum(liveCollections.map((c) => c.amount));
+  const collectedCash = sum(liveCollections.filter((c) => c.mode === 'cash').map((c) => c.amount));
   const owed = (udhaar.data ?? []).filter((u) => u.outstanding > 0);
   const owedTotal = sum(owed.map((u) => u.outstanding));
   const owedClients = new Set(owed.map((u) => u.client_phone)).size;
@@ -81,7 +83,14 @@ export default function SalonDayPage() {
                   </Link>
                 </div>
 
-                {closing.data ? (
+                {/* An entry or udhaar payment after closing changes the cash: say so, rather than show an old result. */}
+                {closing.data && collected.isSuccess && closing.data.expected_cash !== s.cash + collectedCash ? (
+                  <Link to={`/salon/close?day=${day}`} className="notice notice-warning">
+                    <AlertTriangle />
+                    <span className="grow">{t('closing_stale')}</span>
+                    <ChevronRight />
+                  </Link>
+                ) : closing.data ? (
                   <Link to={`/salon/close?day=${day}`}
                     className={`notice ${closing.data.counted_cash === closing.data.expected_cash ? 'notice-success' : 'notice-warning'}`}>
                     {closing.data.counted_cash === closing.data.expected_cash ? <CheckCircle2 /> : <AlertTriangle />}

@@ -527,7 +527,6 @@ export const en = {
   work_short: 'For commission',
   work_net: 'Work done',
   work_discounts: 'Discounts {amount}',
-  work_menu_value: 'At menu prices',
   work_charged: 'Charged',
   work_commission_note: 'Commission is worked out from the work done, after any discount.',
   work_none: 'No work logged in this month',
@@ -541,6 +540,7 @@ export const en = {
   alert_udhaar_old: '{amount} udhaar pending for over a week',
   history_udhaar_collections: 'Udhaar',
   history_t_udhaar_collections: 'Udhaar collected',
+  closing_stale: 'Entries changed after the day was closed. Count the cash again.',
 } as const;
 
 export type TKey = keyof typeof en;

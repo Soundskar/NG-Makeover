@@ -419,14 +419,16 @@ export default function LogVisitPage() {
 
         {/* ----- the bill ----- */}
         <div className="card bill">
-          <div className="row-between"><span className="muted">{t('subtotal')}</span><Money n={subtotal} /></div>
           {discount > 0 && (
-            <div className="row-between text-success" style={{ animation: 'row-in 0.2s' }}>
-              <span>{t('discount')}{pctShown ? ` (${pctShown}%)` : ''}</span>
-              <span className="num">−{formatINR(discount)}</span>
-            </div>
+            <>
+              <div className="row-between"><span className="muted">{t('subtotal')}</span><Money n={subtotal} /></div>
+              <div className="row-between text-success" style={{ animation: 'row-in 0.2s' }}>
+                <span>{t('discount')}{pctShown ? ` (${pctShown}%)` : ''}</span>
+                <span className="num">−{formatINR(discount)}</span>
+              </div>
+            </>
           )}
-          <div className="bill-total row-between">
+          <div className={`row-between${discount > 0 ? ' bill-total' : ''}`}>
             <span className="stat-label">{t('total')}</span>
             <Money n={total} className="stat-value" animate />
           </div>

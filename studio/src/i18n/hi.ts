@@ -529,7 +529,6 @@ export const hi: Record<TKey, string> = {
   work_short: 'कमीशन के लिए',
   work_net: 'किया गया काम',
   work_discounts: 'छूट {amount}',
-  work_menu_value: 'मेन्यू दाम से',
   work_charged: 'लिया गया',
   work_commission_note: 'कमीशन छूट के बाद किए गए काम से तय होगा।',
   work_none: 'इस महीने कोई काम दर्ज नहीं',
@@ -543,4 +542,5 @@ export const hi: Record<TKey, string> = {
   alert_udhaar_old: '{amount} उधार एक हफ़्ते से ज़्यादा से बाकी',
   history_udhaar_collections: 'उधार',
   history_t_udhaar_collections: 'उधार वसूली',
+  closing_stale: 'दिन बंद होने के बाद एंट्री बदली हैं। कैश फिर से गिनें।',
 };

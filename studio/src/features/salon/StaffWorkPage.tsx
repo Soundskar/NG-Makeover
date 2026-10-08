@@ -99,15 +99,18 @@ function PersonWorkSheet({ person, name, from, to, onClose }: {
   return (
     <Sheet open onClose={onClose} title={name}>
       <div className="stack">
-        <div className="card stack" style={{ gap: 4 }}>
-          <div className="row-between"><span className="muted">{t('work_menu_value')}</span><Money n={person.menu_value} /></div>
-          {person.charged !== person.menu_value && (
-            <div className="row-between"><span className="muted">{t('work_charged')}</span><Money n={person.charged} /></div>
-          )}
+        <div className="card bill">
+          {/* Ranged services record their lowest menu price, so "menu value" would mislead: show what was charged. */}
           {person.discount > 0 && (
-            <div className="row-between text-success"><span>{t('discount')}</span><span className="num">−{formatINR(person.discount)}</span></div>
+            <>
+              <div className="row-between"><span className="muted">{t('work_charged')}</span><Money n={person.charged} /></div>
+              <div className="row-between text-success"><span>{t('discount')}</span><span className="num">−{formatINR(person.discount)}</span></div>
+            </>
           )}
-          <div className="bill-total row-between"><span className="stat-label">{t('work_net')}</span><Money n={person.net} className="stat-value" /></div>
+          <div className={`row-between${person.discount > 0 ? ' bill-total' : ''}`}>
+            <span className="stat-label">{t('work_net')}</span><Money n={person.net} className="stat-value" />
+          </div>
+          <span className="muted small">{t('salon_services_n', { n: person.services })}</span>
         </div>
         <Loaded q={lines}>{(rows) => <WorkList lines={rows} byDay />}</Loaded>
         <SheetCloseButton label={t('close')} />
