@@ -218,6 +218,93 @@ describe('salon log', () => {
   });
 });
 
+describe('salon work log: discounts, udhaar, work per person', () => {
+  let udhaarVisit: string;
+  const log = (who: Who, p: Record<string, unknown>) =>
+    as<{ id: string }>(who, `select log_visit($1::jsonb) as id`, [JSON.stringify(p)]);
+
+  it('splits a bill discount across the services by price, to the rupee', async () => {
+    const wax = await serviceId('Rica wax · Full arms');
+    const brows = await serviceId('Threading (eyebrows, forehead, upper lip, chin)');
+    const [r] = await log('staff', {
+      client_name: 'Bargain Didi', client_phone: '9811111111', discount: 55, discount_note: 'Regular client', paid_cash: 345,
+      lines: [{ service_id: wax, price: 350, staff_id: U.staff }, { service_id: brows, price: 50, staff_id: U.staff2 }],
+    });
+    const [v] = await su(`select total, discount, discount_note from visits where id = $1`, [r!.id]);
+    expect(v).toEqual({ total: 345, discount: 55, discount_note: 'Regular client' });
+    // 55 × 350/400 = 48.1 and 55 × 50/400 = 6.9: the spare rupee goes to the bigger fraction.
+    const lines = await su<{ discount: number }>(`select discount from visit_lines where visit_id = $1 order by sort`, [r!.id]);
+    expect(lines.map((l) => l.discount)).toEqual([48, 7]);
+  });
+
+  it('refuses a discount bigger than the bill, and a payment that ignores the discount', async () => {
+    const wax = await serviceId('Rica wax · Full arms');
+    const line = [{ service_id: wax, price: 350, staff_id: U.staff }];
+    await expect(log('staff', { discount: 400, paid_cash: 0, lines: line })).rejects.toThrow(/more than the bill/);
+    await expect(log('staff', { discount: 50, paid_cash: 350, lines: line })).rejects.toThrow(/does not match/);
+  });
+
+  it('udhaar needs a name and phone, and can be part of a payment', async () => {
+    const facial = await serviceId('Hydra facial');
+    const line = [{ service_id: facial, price: 3000, staff_id: U.staff }];
+    await expect(log('staff', { paid_udhaar: 3000, lines: line })).rejects.toThrow(/name and phone/);
+    const [r] = await log('staff', { client_name: 'Neha', client_phone: '9822222222', paid_upi: 1000, paid_udhaar: 2000, lines: line });
+    udhaarVisit = r!.id;
+    const [s] = await as('owner', `select udhaar, collected, outstanding from udhaar_status where visit_id = $1`, [udhaarVisit]);
+    expect(s).toEqual({ udhaar: 2000, collected: 0, outstanding: 2000 });
+  });
+
+  it('any staff member can look up udhaar by phone and collect it, never more than is owed', async () => {
+    const owed = await as('staff2', `select visit_id, outstanding from udhaar_for_phone('9822222222')`);
+    expect(owed).toEqual([{ visit_id: udhaarVisit, outstanding: 2000 }]);
+    await expect(as('staff2', `select collect_udhaar($1, 2500, 'cash')`, [udhaarVisit])).rejects.toThrow(/Only 2000/);
+    await expect(as('trainer', `select collect_udhaar($1, 100, 'cash')`, [udhaarVisit])).rejects.toThrow(/Not allowed/);
+    await as('staff2', `select collect_udhaar($1, 500, 'cash')`, [udhaarVisit]);
+    const [s] = await as('owner', `select collected, outstanding from udhaar_status where visit_id = $1`, [udhaarVisit]);
+    expect(s).toEqual({ collected: 500, outstanding: 1500 });
+    // Only through the function, and staff see just what they collected themselves today.
+    await expect(as('staff', `insert into udhaar_collections (visit_id, amount, mode) values ($1, 1, 'cash')`, [udhaarVisit]))
+      .rejects.toThrow(/permission denied/);
+    expect(await as('staff', `select id from udhaar_collections`)).toHaveLength(0);
+    expect(await as('staff2', `select id from udhaar_collections`)).toHaveLength(1);
+  });
+
+  it('an entry with udhaar already collected cannot be cancelled until that collection is', async () => {
+    await expect(as('staff', `select void_visit($1, 'oops')`, [udhaarVisit])).rejects.toThrow(/Cancel that first/);
+  });
+
+  it('closes the day counting udhaar collected in cash as drawer cash', async () => {
+    const d = await today();
+    const [c] = await as('owner', `select expected_cash, upi_expected from close_day($1::date, 0, true, null)`, [d]);
+    // Cash: the discounted bill 345 + udhaar collected 500. UPI: Hydra facial 3000 + Neha's 1000.
+    expect(c).toEqual({ expected_cash: 845, upi_expected: 4000 });
+  });
+
+  it('each person sees the work they did; the owner sees everyone\'s totals', async () => {
+    const d = await today();
+    expect(await as('staff2', `select service_name, price, discount from my_work($1::date, $1::date)`, [d])).toEqual([
+      { service_name: 'Threading (eyebrows, forehead, upper lip, chin)', price: 50, discount: 7 },
+    ]);
+    const rows = await as('owner',
+      `select staff_id, services::int, charged::int, discount::int, net::int from work_by_staff($1::date, $1::date) order by net desc`, [d]);
+    expect(rows).toEqual([
+      { staff_id: U.staff, services: 3, charged: 6350, discount: 48, net: 6302 },
+      { staff_id: U.staff2, services: 1, charged: 50, discount: 7, net: 43 },
+    ]);
+    await expect(as('staff', `select * from work_by_staff($1::date, $1::date)`, [d])).rejects.toThrow(/Not allowed/);
+  });
+
+  it('udhaar collections are cancelled, not deleted: staff their own, the owner any', async () => {
+    const [col] = await su<{ id: string }>(`select id from udhaar_collections where visit_id = $1`, [udhaarVisit]);
+    await expect(as('staff', `select void_udhaar_collection($1, 'x')`, [col!.id])).rejects.toThrow(/Not allowed/);
+    await as('staff2', `select void_udhaar_collection($1, 'Wrong amount')`, [col!.id]);
+    const [s] = await as('owner', `select outstanding from udhaar_status where visit_id = $1`, [udhaarVisit]);
+    expect(s).toEqual({ outstanding: 2000 });
+    await as('staff', `select void_visit($1, 'Client changed her mind')`, [udhaarVisit]);
+    expect(await as('owner', `select * from udhaar_status where visit_id = $1`, [udhaarVisit])).toHaveLength(0);
+  });
+});
+
 describe('academy', () => {
   let enrollmentId: string;
   let studentId: string;
