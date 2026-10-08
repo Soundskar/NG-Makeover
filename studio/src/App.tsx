@@ -2,10 +2,11 @@ import { lazy, Suspense, useEffect } from 'react';
 import { Navigate, Outlet, Route, Routes } from 'react-router-dom';
 import { useAuth } from './auth/auth';
 import { devMode, devPaused, devRole, devSignIn } from './auth/devMode';
-import { InactivePage, LoginPage, NotConfiguredPage } from './auth/LoginPage';
+import { BootErrorPage, InactivePage, LoginPage, NotConfiguredPage } from './auth/LoginPage';
 import { BottomNav } from './components/BottomNav';
 import { DevBar } from './components/DevBar';
-import { OfflineBanner, Spinner } from './components/ui';
+import { Splash } from './components/ErrorBoundary';
+import { OfflineBanner, PullToRefresh, Skeleton } from './components/ui';
 import { configured } from './lib/supabase';
 import type { Profile } from './lib/types';
 
@@ -34,7 +35,8 @@ function Shell() {
     <div className="shell">
       {devMode && !devPaused() && <DevBar />}
       <OfflineBanner />
-      <Suspense fallback={<Spinner />}>
+      <PullToRefresh />
+      <Suspense fallback={<div className="page"><Skeleton variant="cards" rows={3} /></div>}>
         <Outlet />
       </Suspense>
       <BottomNav />
@@ -58,8 +60,9 @@ export function App() {
   }, [status]);
 
   if (!configured) return <NotConfiguredPage />;
-  if (status === 'loading') return <Spinner />;
-  if (status === 'signed_out') return devMode && !devPaused() ? <Spinner /> : <LoginPage />;
+  if (status === 'loading') return <Splash />;
+  if (status === 'error') return <BootErrorPage />;
+  if (status === 'signed_out') return devMode && !devPaused() ? <Splash /> : <LoginPage />;
   if (status === 'inactive' || !profile) return <InactivePage />;
 
   const owner = profile.is_owner;

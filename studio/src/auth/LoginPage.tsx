@@ -1,4 +1,4 @@
-import { Lock, LogOut } from 'lucide-react';
+import { Lock, LogOut, RotateCw, WifiOff } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import { ErrorBox, Field } from '../components/ui';
 import { useI18n } from '../i18n/i18n';
@@ -44,7 +44,7 @@ export function LoginPage() {
       <main className="page stack-lg" style={{ paddingTop: 48 }}>
         <LanguageSwitch />
         <div className="center stack" style={{ gap: 4 }}>
-          <div className="avatar" style={{ width: 64, height: 64, margin: '0 auto 8px', fontSize: '1.5rem' }}>NG</div>
+          <img className="brand-mark" src="/favicon.svg" alt="" width={72} height={72} />
           <h1 style={{ fontSize: '1.75rem', fontWeight: 800 }}>{t('login_title')}</h1>
           <p className="muted">{t('login_sub')}</p>
         </div>
@@ -77,7 +77,7 @@ export function LoginPage() {
             {letters ? t('login_use_numbers') : t('login_use_letters')}
           </button>
           {error != null && <ErrorBox error={error} />}
-          <button className="btn btn-primary btn-lg btn-block" disabled={busy || !username || !pin}>
+          <button className="btn btn-primary btn-lg btn-block" disabled={busy || !username || !pin} aria-busy={busy}>
             <Lock /> {t('login_button')}
           </button>
         </form>
@@ -100,6 +100,22 @@ export function InactivePage() {
       <main className="page stack-lg" style={{ paddingTop: 64 }}>
         <div className="notice notice-warning"><Lock /><span>{t('account_inactive')}</span></div>
         <button className="btn btn-secondary btn-block" onClick={signOut}><LogOut /> {t('logout')}</button>
+      </main>
+    </div>
+  );
+}
+
+/** Logged in, but the profile couldn't be loaded (usually no internet). */
+export function BootErrorPage() {
+  const { t } = useI18n();
+  const { retry, signOut } = useAuth();
+  return (
+    <div className="shell no-nav">
+      <main className="page stack-lg center" style={{ paddingTop: 96 }}>
+        <span className="empty-icon" style={{ margin: '0 auto' }}><WifiOff /></span>
+        <p style={{ fontWeight: 700, fontSize: '1.125rem' }}>{t('err_network')}</p>
+        <button className="btn btn-primary btn-lg btn-block" onClick={retry}><RotateCw /> {t('retry')}</button>
+        <button className="btn btn-link" style={{ alignSelf: 'center' }} onClick={signOut}>{t('logout')}</button>
       </main>
     </div>
   );

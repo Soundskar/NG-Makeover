@@ -43,8 +43,11 @@ export function I18nProvider({ children }: { children: ReactNode }) {
   }, [lang]);
 
   const t = useCallback<TFn>((key, vars) => {
+    // "1 student", not "1 students": a key_one variant is used when n is 1.
+    const one = vars?.n === 1 ? (`${key}_one` as TKey) : null;
+    const k = one && one in en ? one : key;
     // A missing word shows its key rather than breaking the screen.
-    let s: string = dicts[lang][key] ?? en[key] ?? key;
+    let s: string = dicts[lang][k] ?? en[k] ?? key;
     if (vars) for (const [k, v] of Object.entries(vars)) s = s.replaceAll(`{${k}}`, String(v));
     return s;
   }, [lang]);
@@ -70,6 +73,10 @@ export function errorText(err: unknown, t: TFn): string {
   if (/must add up/i.test(msg)) return t('err_plan_mismatch');
   if (/Not allowed|row-level security|permission denied/i.test(msg)) return t('err_not_allowed');
   if (/duplicate key.*username/i.test(msg) || /already been registered/i.test(msg)) return t('err_username_taken');
+  if (/already cancelled/i.test(msg)) return t('err_already_cancelled');
+  if (/can't be edited/i.test(msg)) return t('err_payment_locked');
+  if (/at least one service/i.test(msg)) return t('err_no_service');
+  if (/log in again|JWT expired|refresh token/i.test(msg)) return t('err_session');
   // Messages written in the database functions are already plain English.
   if (/^[A-Z][^{}]{3,120}\.$/.test(msg)) return msg;
   return t('err_generic');
