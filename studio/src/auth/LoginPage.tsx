@@ -7,7 +7,7 @@ import { useAuth } from './auth';
 function LanguageSwitch() {
   const { lang, setLang } = useI18n();
   return (
-    <div className="tabs" role="tablist" aria-label="Language / भाषा" style={{ maxWidth: 240, margin: '0 auto' }}>
+    <div className="tabs" role="tablist" aria-label="Language / भाषा" style={{ width: '100%', maxWidth: 260, margin: '0 auto' }}>
       <button className="tab" role="tab" aria-selected={lang === 'en'} onClick={() => setLang('en')}>English</button>
       <button className="tab" role="tab" aria-selected={lang === 'hi'} onClick={() => setLang('hi')}>हिंदी</button>
     </div>
@@ -71,7 +71,7 @@ export function LoginPage() {
               onChange={(e) => setPin(e.target.value)}
             />
           </Field>
-          <button type="button" className="btn btn-sm" style={{ alignSelf: 'flex-start', paddingLeft: 0, color: 'var(--primary)' }}
+          <button type="button" className="btn btn-link" style={{ alignSelf: 'flex-start' }}
             onClick={() => setLetters((v) => !v)}>
             {letters ? t('login_use_numbers') : t('login_use_letters')}
           </button>

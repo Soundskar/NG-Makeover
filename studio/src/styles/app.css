@@ -216,6 +216,10 @@ button.list-item:active, a.list-item:active { background: var(--surface-2); }
 .btn-soft { background: var(--primary-soft); color: var(--primary); }
 .btn-danger { background: var(--danger-soft); color: var(--danger); }
 .btn-whatsapp { background: #128C7E; color: #fff; }
+.btn-link {
+  background: none; color: var(--primary); padding: 0;
+  min-height: 44px; font-size: 1rem; text-decoration: underline; text-underline-offset: 3px;
+}
 .btn-lg { min-height: 60px; font-size: 1.1875rem; border-radius: 14px; }
 .btn-sm { min-height: 40px; padding: 0 14px; font-size: 0.9375rem; border-radius: 10px; }
 
