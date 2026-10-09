@@ -210,12 +210,13 @@ export function BarList({ rows, color = 'var(--series-1)' }: {
       {rows.map((r) => (
         <li key={r.key}>
           <div className="row-between" style={{ gap: 8 }}>
-            <span className="grow bar-label">{r.label}</span>
+            <span className="grow bar-label">
+              {r.label}{r.sub && <span className="muted small num"> · {r.sub}</span>}
+            </span>
             <strong className="num">{r.valueText}</strong>
           </div>
           <div className="bar-row">
             <span className="bar-fill" style={{ width: `${Math.max(2, (r.value / max) * 100)}%`, background: color }} />
-            {r.sub && <span className="muted small num">{r.sub}</span>}
           </div>
         </li>
       ))}

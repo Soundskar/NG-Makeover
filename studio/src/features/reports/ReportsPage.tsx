@@ -249,7 +249,7 @@ export default function ReportsPage() {
 
                 <button className="btn btn-secondary btn-block" onClick={() => {
                   void downloadReport(r, p, title.main, nameOf, t, lang)
-                    .then(() => toast({ kind: 'success', text: t('backup_done') }))
+                    .then(() => toast({ kind: 'success', text: t('rep_downloaded') }))
                     .catch((e: unknown) => toast({ kind: 'error', text: String(e) }));
                 }}>
                   <HardDriveDownload /> {t('rep_download')}

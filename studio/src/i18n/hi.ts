@@ -613,4 +613,5 @@ export const hi: Record<TKey, string> = {
   service_rebook: 'इतने दिन बाद क्लाइंट को याद दिलाएँ',
   service_rebook_hint: 'ब्राइडल मेकअप जैसी एक बार की सर्विस के लिए खाली छोड़ें।',
   service_rebook_n: '{n} दिन बाद याद दिलाना',
+  rep_downloaded: 'रिपोर्ट डाउनलोड हो गई',
 };

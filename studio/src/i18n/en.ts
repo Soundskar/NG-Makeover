@@ -611,6 +611,7 @@ export const en = {
   service_rebook: 'Remind the client after (days)',
   service_rebook_hint: 'Leave empty for one-off services like bridal makeup.',
   service_rebook_n: 'Reminder after {n} days',
+  rep_downloaded: 'Report downloaded',
 } as const;
 
 export type TKey = keyof typeof en;
