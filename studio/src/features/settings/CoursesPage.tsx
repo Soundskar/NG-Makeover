@@ -50,7 +50,7 @@ export default function CoursesPage() {
                           <ChevronRight className="chev" />
                         </button>
                       ))}
-                      <button className="list-item" onClick={() => setMod({ course: c, module: null })} style={{ color: 'var(--primary)', fontWeight: 600 }}>
+                      <button className="list-item" onClick={() => setMod({ course: c, module: null })} style={{ color: 'var(--accent-ink)', fontWeight: 600 }}>
                         <Plus /> {t('module_add')}
                       </button>
                     </div>

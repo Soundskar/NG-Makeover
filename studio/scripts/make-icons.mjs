@@ -13,7 +13,7 @@ await sharp(svg, { density: 300 }).resize(512, 512).png().toFile(out('icon-512.p
 // Maskable: Android crops icons into circles and squircles, so the artwork
 // sits inside the middle 80% on a full-bleed background.
 const inner = await sharp(svg, { density: 300 }).resize(400, 400).png().toBuffer();
-await sharp({ create: { width: 512, height: 512, channels: 4, background: '#A3195B' } })
+await sharp({ create: { width: 512, height: 512, channels: 4, background: '#000000' } })
   .composite([{ input: inner, gravity: 'center' }])
   .png()
   .toFile(out('icon-512-maskable.png'));

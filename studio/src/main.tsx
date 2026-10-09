@@ -7,10 +7,10 @@ import { AuthProvider } from './auth/auth';
 import { ErrorBoundary, reloadForNewVersion } from './components/ErrorBoundary';
 import { ToastProvider } from './components/ui';
 import { I18nProvider } from './i18n/i18n';
-// Baloo 2 (greetings, titles, amounts) and Mukta (everything else): both from
-// Ek Type, an Indian type foundry, so English, Hindi and the ₹ sign match.
+// Inter Tight (greetings, titles, amounts, buttons: crisp, like Uber's type) and
+// Mukta (everything else, and all Hindi, including Hindi titles).
 // Served from the app itself; the browser only fetches the scripts a page uses.
-import '@fontsource-variable/baloo-2';
+import '@fontsource-variable/inter-tight';
 import '@fontsource/mukta/400.css';
 import '@fontsource/mukta/600.css';
 import '@fontsource/mukta/700.css';
