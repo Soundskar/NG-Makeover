@@ -102,12 +102,12 @@ export default function ClassesPage() {
             const markedCount = scheduled.filter((e) => marks.has(e.id)).length;
 
             const renderRow = (e: typeof all[number], extra: boolean) => (
-              <div key={e.id} className="card stack" style={{ gap: 8 }}>
+              <div key={e.id} className="list-item stack" style={{ alignItems: 'stretch', gap: 8 }}>
                 <Link to={`/students/${e.student_id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
-                  <span style={{ fontWeight: 700 }}>{e.students.full_name}</span>
+                  <span className="title">{e.students.full_name}</span>
                   <span className="muted small"> · {courseName(e.course_id)}{extra ? ` · ${t('extra_class')}` : ''}</span>
                 </Link>
-                <AttendanceButtons value={marks.get(e.id)?.status ?? null}
+                <AttendanceButtons compact value={marks.get(e.id)?.status ?? null}
                   onChange={(status) => mark.mutate([{ enrollment_id: e.id, status, extra }])} />
               </div>
             );
@@ -117,7 +117,7 @@ export default function ClassesPage() {
                 {scheduled.length > 0 && (
                   <div className="stack" style={{ gap: 6 }}>
                     <p className="muted">{t('classes_marked', { done: markedCount, total: scheduled.length })}</p>
-                    <div className={`bar ${markedCount === scheduled.length ? 'success' : ''}`}>
+                    <div className={`bar thin ${markedCount === scheduled.length ? 'success' : ''}`}>
                       <span style={{ width: `${Math.round((markedCount / scheduled.length) * 100)}%` }} />
                     </div>
                   </div>
@@ -139,7 +139,7 @@ export default function ClassesPage() {
                           </button>
                         )}
                       </div>
-                      <div className="stack stagger">
+                      <div className="list">
                         {[...list].sort((a, b) => a.students.full_name.localeCompare(b.students.full_name)).map((e) => renderRow(e, false))}
                       </div>
                     </section>
@@ -148,7 +148,7 @@ export default function ClassesPage() {
                 {extras.length > 0 && (
                   <section className="stack">
                     <h2 className="section-title">{t('extra_class')}</h2>
-                    {extras.map((e) => renderRow(e, true))}
+                    <div className="list">{extras.map((e) => renderRow(e, true))}</div>
                   </section>
                 )}
                 <button className="btn btn-secondary btn-block" onClick={() => setExtraOpen(true)}>

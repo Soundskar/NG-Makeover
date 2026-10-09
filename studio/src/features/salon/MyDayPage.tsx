@@ -12,7 +12,7 @@ import { VisitCard, withinCancelWindow } from './VisitCard';
 /** Staff: the work I did today (the basis for my commission) and the entries I logged. */
 export default function MyDayPage() {
   const me = useMe();
-  const { t, lang } = useI18n();
+  const { t } = useI18n();
   const today = todayIST();
   const work = useMyWork(today, today);
   const visits = useVisits(today);
@@ -35,9 +35,25 @@ export default function MyDayPage() {
                     {discounts > 0 ? ` · ${t('work_discounts', { amount: formatINR(discounts) })}` : ''}
                   </span>
                 </div>
-                <p className="muted small">{t('work_commission_note')}</p>
 
-                <section className="stack">
+                {/* Entries can be cancelled for 15 minutes; only those need the full card. */}
+                <Loaded q={visits} skeleton="cards">
+                  {(all) => {
+                    const recent = all.filter((v) => v.created_by === me.id && !v.voided && withinCancelWindow(v.created_at));
+                    if (!recent.length) return null;
+                    return (
+                      <section className="stack" style={{ gap: 8 }}>
+                        <h2 className="section-title">{t('my_recent_entries')}</h2>
+                        <p className="muted small">{t('entry_cancel_window')}</p>
+                        <div className="stack stagger">
+                          {recent.map((v) => <VisitCard key={v.id} v={v} canCancel />)}
+                        </div>
+                      </section>
+                    );
+                  }}
+                </Loaded>
+
+                <section className="stack" style={{ gap: 8 }}>
                   <h2 className="section-title">{t('my_work_done')}</h2>
                   {lines.length === 0 ? <Empty title={t('my_day_empty')} sub={t('my_day_empty_sub')} /> : <WorkList lines={lines} byDay={false} />}
                 </section>
@@ -46,24 +62,7 @@ export default function MyDayPage() {
           }}
         </Loaded>
 
-        <Loaded q={visits} skeleton="cards">
-          {(all) => {
-            const mine = all.filter((v) => v.created_by === me.id);
-            if (!mine.length) return null;
-            return (
-              <section className="stack">
-                <h2 className="section-title">{t('my_work_logged')}</h2>
-                <p className="muted small">{t('entry_cancel_window')}</p>
-                <div className="stack stagger">
-                  {mine.map((v) => <VisitCard key={v.id} v={v} canCancel={withinCancelWindow(v.created_at)} />)}
-                </div>
-              </section>
-            );
-          }}
-        </Loaded>
-
-        <Link to="/salon/new" className="btn btn-primary btn-lg btn-block"><Plus /> {t('nav_new_entry')}</Link>
-        <p className="muted small center">{formatWeekday(today, lang)}, {formatDate(today, lang)}</p>
+        <Link to="/salon/new" className="btn btn-primary btn-block"><Plus /> {t('nav_new_entry')}</Link>
       </Page>
     </>
   );

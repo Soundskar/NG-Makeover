@@ -97,8 +97,8 @@ export function AttendanceTab({ data, enrollment }: { data: StudentFull; enrollm
 }
 
 /** Present / Absent / Leave as three big buttons with words. */
-export function AttendanceButtons({ value, onChange, disabled }: {
-  value: AttendanceStatus | null; onChange: (s: AttendanceStatus) => void; disabled?: boolean;
+export function AttendanceButtons({ value, onChange, disabled, compact }: {
+  value: AttendanceStatus | null; onChange: (s: AttendanceStatus) => void; disabled?: boolean; compact?: boolean;
 }) {
   const { t } = useI18n();
   const style = (s: AttendanceStatus) => value !== s ? undefined
@@ -106,7 +106,7 @@ export function AttendanceButtons({ value, onChange, disabled }: {
       : s === 'absent' ? { background: 'var(--danger-soft)', borderColor: 'var(--danger)', color: 'var(--danger)' }
         : { background: 'var(--surface-2)', borderColor: 'var(--text-2)', color: 'var(--text)' };
   return (
-    <div className="choices" role="radiogroup" aria-label={t('attendance')}>
+    <div className={compact ? 'choices compact' : 'choices'} role="radiogroup" aria-label={t('attendance')}>
       {(['present', 'absent', 'leave'] as const).map((s) => (
         <button key={s} type="button" role="radio" aria-checked={value === s} className="choice" disabled={disabled}
           style={style(s)} onClick={() => onChange(s)}>

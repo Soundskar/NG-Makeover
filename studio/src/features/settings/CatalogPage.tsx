@@ -6,6 +6,7 @@ import { useI18n } from '../../i18n/i18n';
 import { must, supabase } from '../../lib/supabase';
 import { nameOf, type Service, type ServiceCategory } from '../../lib/types';
 import { priceLabel, useServiceCatalog } from '../salon/data';
+import { iconFor, ServiceIcon } from '../../components/ServiceIcon';
 
 /** Owner: salon services and prices. Changes apply to new entries only. */
 export default function CatalogPage() {
@@ -35,10 +36,16 @@ export default function CatalogPage() {
                 <div className="list">
                   {list.map((s) => (
                     <button key={s.id} className="list-item" onClick={() => setEditing(s)} style={{ opacity: s.active ? 1 : 0.55 }}>
+                      <span className="row-icon"><ServiceIcon name={iconFor(s.name_en)} size={18} /></span>
                       <span className="grow">
                         <span className="title" style={{ display: 'block', fontWeight: 500 }}>{nameOf(s, lang)}</span>
-                        {s.rebook_days != null && <span className="sub num" style={{ display: 'block' }}>{t('service_rebook_n', { n: s.rebook_days })}</span>}
-                        {!s.active && <span className="badge badge-neutral"><EyeOff size={14} /> {t('service_hidden')}</span>}
+                        {(s.rebook_days != null || !s.active) && (
+                          <span className="sub num" style={{ display: 'block' }}>
+                            {!s.active && <><EyeOff size={13} style={{ verticalAlign: '-2px' }} /> {t('service_hidden')}</>}
+                            {!s.active && s.rebook_days != null ? ' · ' : ''}
+                            {s.rebook_days != null ? t('service_rebook_n', { n: s.rebook_days }) : ''}
+                          </span>
+                        )}
                       </span>
                       <span className="end num">{priceLabel(s, t('from'))}</span>
                       <ChevronRight className="chev" />

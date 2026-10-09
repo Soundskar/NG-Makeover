@@ -74,15 +74,14 @@ export function DetailsTab({ data, enrollment }: { data: StudentFull; enrollment
           <h2 className="section-title">{t('adm_step_timing')}</h2>
           <button className="btn btn-sm btn-soft" onClick={() => setEditTiming(true)}><Pencil /> {t('edit')}</button>
         </div>
-        <div className="stack">
-          {enrollment.status === 'active' && (
-            <button className="btn btn-secondary btn-block" onClick={() => setStatusTo('paused')}><Pause /> {t('enr_pause')}</button>
-          )}
-          {enrollment.status === 'paused' && (
-            <button className="btn btn-secondary btn-block" onClick={() => setStatusTo('active')}><Play /> {t('enr_resume')}</button>
-          )}
+        <div className="stack" style={{ gap: 8 }}>
           {(enrollment.status === 'active' || enrollment.status === 'paused') && (
-            <button className="btn btn-danger btn-block" onClick={() => setStatusTo('left')}><UserX /> {t('enr_left')}</button>
+            <div className="btn-pair">
+              {enrollment.status === 'active'
+                ? <button className="btn btn-secondary" onClick={() => setStatusTo('paused')}><Pause /> {t('enr_pause')}</button>
+                : <button className="btn btn-secondary" onClick={() => setStatusTo('active')}><Play /> {t('enr_resume')}</button>}
+              <button className="btn btn-danger" onClick={() => setStatusTo('left')}><UserX /> {t('enr_left')}</button>
+            </div>
           )}
           <Link to={`/students/new?student=${student.id}`} className="btn btn-soft btn-block"><Plus /> {t('adm_add_course')}</Link>
         </div>

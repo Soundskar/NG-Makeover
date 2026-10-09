@@ -14,7 +14,7 @@ import { haptic } from '../../lib/haptics';
 import { formatINR } from '../../lib/money';
 import { must, supabase } from '../../lib/supabase';
 import type { Advance, Booking, PayMode } from '../../lib/types';
-import { formatPhone, waLink } from '../../lib/whatsapp';
+import { waLink } from '../../lib/whatsapp';
 import { payModeOptions } from '../students/AdmissionPage';
 import { useSettings } from '../students/data';
 import { bookingMessage } from '../clients/data';
@@ -136,15 +136,19 @@ function BookingCard({ b, advance, onStart, onMore }: { b: Booking; advance: num
         </div>
         <div className="grow stack" style={{ gap: 2 }}>
           <Link to={`/clients/${b.client_phone}`} className="booking-name">{b.client_name}</Link>
-          <span className="muted small num">{formatPhone(b.client_phone)}</span>
           {b.services_text && <span className="small">{b.services_text}</span>}
-          <div className="row" style={{ gap: 6, flexWrap: 'wrap', marginTop: 4 }}>
-            {statusBadge}
-            {b.staff_id && <span className="badge badge-neutral">{nameOf(b.staff_id)}</span>}
-            {b.quoted != null && <span className="badge badge-neutral num">{formatINR(b.quoted)}</span>}
-            {advance > 0 && <span className="badge badge-success num">{t('booking_advance_badge', { amount: formatINR(advance) })}</span>}
-            {b.reminded_on && open && <span className="badge badge-primary"><BellRing size={13} /> {t('booking_reminded')}</span>}
-          </div>
+          {/* Who, price, advance and reminder on one quiet line; a badge only when it's no longer open. */}
+          {(b.staff_id || b.quoted != null || advance > 0 || (b.reminded_on && open)) && (
+            <span className="muted small num">
+              {[
+                b.staff_id ? nameOf(b.staff_id) : null,
+                b.quoted != null ? formatINR(b.quoted) : null,
+                advance > 0 ? t('booking_advance_badge', { amount: formatINR(advance) }) : null,
+                b.reminded_on && open ? t('booking_reminded') : null,
+              ].filter(Boolean).join(' · ')}
+            </span>
+          )}
+          {statusBadge && <span style={{ marginTop: 2 }}>{statusBadge}</span>}
           {b.note && <span className="muted small" style={{ whiteSpace: 'pre-wrap' }}>{b.note}</span>}
           {b.status === 'cancelled' && b.cancel_reason && <span className="muted small">{b.cancel_reason}</span>}
         </div>
@@ -181,7 +185,7 @@ function BookingActions({ b, advances, onClose }: { b: Booking; advances: Advanc
   const [payMode, setPayMode] = useState<PayMode>('upi');
   const [reason, setReason] = useState('');
   const refresh = () => {
-    for (const k of ['bookings', 'booking', 'client', 'clients', 'clients-due', 'report']) qc.invalidateQueries({ queryKey: [k] });
+    for (const k of ['bookings', 'booking', 'client', 'clients', 'clients-due', 'report', 'advances', 'closing']) qc.invalidateQueries({ queryKey: [k] });
   };
 
   const addAdvance = useMutation({

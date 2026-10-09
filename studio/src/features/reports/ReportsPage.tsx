@@ -1,5 +1,5 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
-import { ChevronLeft, ChevronRight, HardDriveDownload, PhoneCall } from 'lucide-react';
+import { ChevronLeft, ChevronRight, HardDriveDownload } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useTeamNames } from '../../auth/auth';
@@ -11,9 +11,7 @@ import { formatINR, sum } from '../../lib/money';
 import { changePct, periodOf, shiftAnchor, type Period, type PeriodKind } from '../../lib/periods';
 import { must, supabase } from '../../lib/supabase';
 import type { Lang } from '../../lib/types';
-import { useClientsDue } from '../salon/CallbackPage';
 import { useUdhaarStatus } from '../salon/data';
-import { useFeeStatus } from '../students/data';
 import { BarList, ColumnChart, Delta, StackBar, type Column } from './charts';
 
 export interface Report {
@@ -79,8 +77,6 @@ export default function ReportsPage() {
   const prev = useReport(p.prevFrom, p.prevTo);
   const nameOf = useTeamNames();
   const udhaar = useUdhaarStatus();
-  const fees = useFeeStatus(true);
-  const dueCount = useClientsDue().data?.length ?? 0;
 
   const title = periodTitle(p, today, t, lang);
   const vs = vsText(p, t);
@@ -118,7 +114,6 @@ export default function ReportsPage() {
             const marked = r.attendance.present + r.attendance.absent;
             const attendancePct = marked ? Math.round((r.attendance.present / marked) * 100) : null;
             const owedNow = sum((udhaar.data ?? []).map((u) => u.outstanding));
-            const overdueNow = sum((fees.data ?? []).filter((f) => f.enrollment_status !== 'left').map((f) => f.overdue_amount));
             const columns = trendColumns(p, r, lang);
             const busiest = r.by_hour.length ? r.by_hour.reduce((a, b) => (b.visits > a.visits ? b : a)) : null;
 
@@ -134,11 +129,10 @@ export default function ReportsPage() {
                   <Delta pct={d(income, prevIncome)} vs={vs} />
                 </div>
 
-                <div className="stat-grid">
-                  <Kpi label={t('rep_clients')} value={<Count n={r.salon.visits} className="stat-value" />} delta={<Delta pct={d(r.salon.visits, pr?.salon.visits)} vs={vs} />} />
-                  <Kpi label={t('rep_avg_bill')} value={<Money n={avg} className="stat-value" animate />} delta={<Delta pct={d(avg, prevAvg)} vs={vs} />} />
-                  <Kpi label={t('rep_services')} value={<Count n={r.services} className="stat-value" />} delta={<Delta pct={d(r.services, pr?.services)} vs={vs} />} />
-                  <Kpi label={t('rep_discounts')} value={<Money n={r.salon.discount} className="stat-value" animate />}
+                <div className="list">
+                  <KpiRow label={t('rep_clients')} value={<Count n={r.salon.visits} className="kpi-value" />} delta={<Delta pct={d(r.salon.visits, pr?.salon.visits)} vs={vs} />} />
+                  <KpiRow label={t('rep_avg_bill')} value={<Money n={avg} className="kpi-value" animate />} delta={<Delta pct={d(avg, prevAvg)} vs={vs} />} />
+                  <KpiRow label={t('rep_discounts')} value={<Money n={r.salon.discount} className="kpi-value" animate />}
                     delta={<Delta pct={d(r.salon.discount, pr?.salon.discount)} vs={vs} upIsGood={false} />} />
                 </div>
 
@@ -190,11 +184,6 @@ export default function ReportsPage() {
                     <MiniStat label={t('rep_returning')} value={r.clients_returning} />
                   </div>
                   {r.salon.no_phone > 0 && <p className="muted small">{t('rep_no_phone', { n: r.salon.no_phone })}</p>}
-                  {dueCount > 0 && (
-                    <Link to="/salon/callback" className="notice notice-info">
-                      <PhoneCall /><span className="grow">{t('callback_alert', { n: dueCount })}</span><ChevronRight />
-                    </Link>
-                  )}
                 </ReportCard>
 
                 {p.kind !== 'day' && busiest && (
@@ -228,11 +217,6 @@ export default function ReportsPage() {
                         {t('present')} {r.attendance.present} · {t('absent')} {r.attendance.absent} · {t('leave')} {r.attendance.leave}
                       </span>
                     </div>
-                  )}
-                  {overdueNow > 0 && (
-                    <Link to="/fees" className="notice notice-danger">
-                      <span className="grow">{t('rep_overdue_now', { amount: formatINR(overdueNow) })}</span><ChevronRight />
-                    </Link>
                   )}
                 </ReportCard>
 
@@ -276,12 +260,15 @@ function ReportCard({ title, link, children }: { title: string; link?: { to: str
   );
 }
 
-function Kpi({ label, value, delta }: { label: string; value: ReactNode; delta: ReactNode }) {
+/** One measure as a list row: the name and its change on the left, the number on the right. */
+function KpiRow({ label, value, delta }: { label: string; value: ReactNode; delta: ReactNode }) {
   return (
-    <div className="card stack" style={{ gap: 2 }}>
-      <span className="stat-label">{label}</span>
-      {value}
-      {delta}
+    <div className="list-item">
+      <span className="grow">
+        <span className="title" style={{ display: 'block' }}>{label}</span>
+        {delta}
+      </span>
+      <span className="end">{value}</span>
     </div>
   );
 }

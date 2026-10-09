@@ -3,7 +3,7 @@ import { CalendarPlus, Cake, Check, MessageCircle, Pencil, Phone, Star, StickyNo
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useTeamNames } from '../../auth/auth';
-import { Count, ErrorBox, Field, Loaded, Money, Page, Sheet, TopBar, useToast } from '../../components/ui';
+import { ErrorBox, Field, Loaded, Page, Sheet, TopBar, useToast } from '../../components/ui';
 import { useI18n } from '../../i18n/i18n';
 import { daysUntilBirthday, formatDate, formatTime, todayIST } from '../../lib/dates';
 import { formatINR, sum } from '../../lib/money';
@@ -52,26 +52,25 @@ export default function ClientPage() {
 
             return (
               <>
-                <div className="card stack" style={{ gap: 10 }}>
-                  <div className="row-between">
-                    <span className="muted num">{formatPhone(phone)}</span>
-                    {live.length > 0 && <span className="muted small">{t('client_since', { date: formatDate(live[live.length - 1]!.visit_date, lang, false) })}</span>}
-                  </div>
-                  <div className="row" style={{ gap: 8 }}>
-                    {call && <a className="btn btn-secondary grow" href={call}><Phone /> {t('call')}</a>}
-                    {wa && <a className="btn btn-whatsapp grow" href={wa} target="_blank" rel="noopener"><MessageCircle /> WhatsApp</a>}
-                  </div>
-                </div>
-
-                <div className="stat-grid">
-                  <div className="card stack" style={{ gap: 2 }}>
-                    <span className="stat-label">{t('client_visits')}</span>
-                    <Count n={live.length} className="stat-value" />
-                  </div>
-                  <div className="card stack" style={{ gap: 2 }}>
-                    <span className="stat-label">{t('client_spent')}</span>
-                    <Money n={spent} className="stat-value" animate />
-                    {live.length > 1 && <span className="stat-sub num">{t('client_avg', { amount: formatINR(Math.round(spent / live.length)) })}</span>}
+                {/* Who she is to the studio, in one card: visits and spend, what she comes for, how to reach her. */}
+                <div className="card stack" style={{ gap: 6 }}>
+                  <strong className="num">
+                    {[
+                      t('callback_visits', { n: live.length }),
+                      spent > 0 ? `${t('client_spent')} ${formatINR(spent)}` : null,
+                      live.length > 1 ? t('client_avg', { amount: formatINR(Math.round(spent / live.length)) }) : null,
+                    ].filter(Boolean).join(' · ')}
+                  </strong>
+                  {favourites.length > 0 && (
+                    <span className="small">{t('client_favourites')}: {favourites.map(([s]) => s).join(', ')}</span>
+                  )}
+                  {live.length > 0 && (
+                    <span className="muted small">{t('client_since', { date: formatDate(live[live.length - 1]!.visit_date, lang, false) })}</span>
+                  )}
+                  <div className="row" style={{ gap: 8, borderTop: '1px solid var(--border)', paddingTop: 10, marginTop: 4 }}>
+                    <span className="grow muted num">{formatPhone(phone)}</span>
+                    {call && <a className="icon-btn icon-btn-fill" href={call} aria-label={t('call')}><Phone /></a>}
+                    {wa && <a className="icon-btn icon-btn-wa" href={wa} target="_blank" rel="noopener" aria-label="WhatsApp"><MessageCircle /></a>}
                   </div>
                 </div>
 
@@ -100,21 +99,14 @@ export default function ClientPage() {
                   </div>
                 </section>
 
-                {favourites.length > 0 && (
-                  <section className="card stack" style={{ gap: 6 }}>
-                    <h2 className="card-title">{t('client_favourites')}</h2>
-                    {favourites.map(([s, n]) => (
-                      <div key={s} className="row-between"><span>{s}</span><span className="muted num">× {n}</span></div>
-                    ))}
-                  </section>
-                )}
-
-                <div className="stack">
-                  <Link to={`/bookings/new?phone=${phone}`} className="btn btn-primary btn-lg btn-block"><CalendarPlus /> {t('booking_new')}</Link>
-                  <button className="btn btn-soft btn-block" onClick={() => setAsking(true)}>
-                    <Star /> {t('review_title')}
-                    {client?.review_asked_on && <span className="small" style={{ fontWeight: 500 }}>· {t('review_asked_on', { date: formatDate(client.review_asked_on, lang, false) })}</span>}
-                  </button>
+                <div className="stack" style={{ gap: 6 }}>
+                  <div className="btn-pair">
+                    <Link to={`/bookings/new?phone=${phone}`} className="btn btn-primary"><CalendarPlus /> {t('booking_new')}</Link>
+                    <button className="btn btn-secondary" onClick={() => setAsking(true)}><Star /> {t('review_short')}</button>
+                  </div>
+                  {client?.review_asked_on && (
+                    <span className="muted small center">{t('review_asked_on', { date: formatDate(client.review_asked_on, lang, false) })}</span>
+                  )}
                 </div>
 
                 {upcoming.length > 0 && (

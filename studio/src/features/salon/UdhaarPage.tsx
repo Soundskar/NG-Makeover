@@ -54,30 +54,26 @@ export default function UdhaarPage() {
                   <span className="stat-sub">{t('udhaar_clients', { n: clients.length })}</span>
                 </div>
                 {clients.length === 0 ? <Empty icon={<HandCoins />} title={t('udhaar_none')} /> : (
-                  <div className="stack stagger">
+                  <div className="list">
                     {clients.map((c) => {
                       const remind = waLink(c.phone, t('udhaar_remind_msg', {
                         name: (c.name ?? '').split(' ')[0] || '', studio, amount: formatINR(c.owed), date: formatDate(c.since, lang),
                       }));
                       const call = telLink(c.phone);
                       return (
-                        <div key={c.phone} className="card stack" style={{ gap: 10 }}>
-                          <div className="row">
-                            <Initials name={c.name ?? c.phone} />
-                            <span className="grow">
-                              <span style={{ fontWeight: 700, display: 'block' }}>{c.name ?? formatPhone(c.phone)}</span>
-                              <span className="muted small num">
-                                {formatPhone(c.phone)} · {t('since', { date: formatDate(c.since, lang, false) })}
-                              </span>
-                            </span>
-                            <Money n={c.owed} className="stat-label text-warning" />
-                          </div>
-                          <div className="row" style={{ gap: 8 }}>
-                            {call && <a className="btn btn-sm btn-secondary" href={call} aria-label={t('call')}><Phone /></a>}
+                        <div key={c.phone} className="list-item" style={{ flexWrap: 'wrap', rowGap: 8 }}>
+                          <Initials name={c.name ?? c.phone} />
+                          <span className="grow">
+                            <span className="title" style={{ display: 'block' }}>{c.name ?? formatPhone(c.phone)}</span>
+                            <span className="sub num">{t('since', { date: formatDate(c.since, lang, false) })}</span>
+                          </span>
+                          <Money n={c.owed} className="title text-warning" />
+                          <div className="row" style={{ gap: 6, width: '100%', paddingLeft: 52 }}>
+                            {call && <a className="icon-btn icon-btn-sm icon-btn-fill" href={call} aria-label={t('call')}><Phone /></a>}
                             {remind && (
-                              <a className="btn btn-sm btn-whatsapp grow" href={remind} target="_blank" rel="noopener"><Bell /> {t('remind')}</a>
+                              <a className="icon-btn icon-btn-sm icon-btn-wa" href={remind} target="_blank" rel="noopener" aria-label={t('remind')}><Bell /></a>
                             )}
-                            <button className="btn btn-sm btn-primary grow" onClick={() => setCollecting(c)}>
+                            <button className="btn btn-sm btn-primary" style={{ marginLeft: 'auto' }} onClick={() => setCollecting(c)}>
                               <HandCoins /> {t('udhaar_collect')}
                             </button>
                           </div>

@@ -80,11 +80,8 @@ export default function FollowUpPage() {
             const total = rows.reduce((n, f) => n + (tab === 'overdue' ? f.overdue_amount : f.next_due_amount ?? 0), 0);
             return (
               <>
-                <div className="card row-between">
-                  <span className="stat-label">{t('followup_count', { n: rows.length })}</span>
-                  <span className="stat-label num">{formatINR(total)}</span>
-                </div>
-                <div className="stack stagger">
+                <p className="muted num" style={{ padding: '0 2px' }}>{t('followup_count', { n: rows.length })} · <strong>{formatINR(total)}</strong></p>
+                <div className="list">
                   {rows.map((f) => {
                     const s = studentOf(f.student_id);
                     if (!s) return null;
@@ -96,22 +93,17 @@ export default function FollowUpPage() {
                       t, lang, studio, student: s.full_name, course: courseName(f.course_id), amount, date, overdue,
                     })) : null;
                     return (
-                      <div key={f.enrollment_id} className="card stack" style={{ gap: 8 }}>
-                        <Link to={`/students/${s.id}`} className="row-between" style={{ textDecoration: 'none', color: 'inherit' }}>
-                          <span>
-                            <span style={{ fontWeight: 700, display: 'block' }}>{s.full_name}</span>
-                            <span className="muted small">{courseName(f.course_id)}</span>
-                          </span>
-                          <ChevronRight className="chev" />
-                        </Link>
-                        <div className="row-between">
-                          <span className={overdue ? 'text-danger' : ''} style={{ fontWeight: 700 }}>
+                      <div key={f.enrollment_id} className="list-item">
+                        <Link to={`/students/${s.id}`} className="grow" style={{ textDecoration: 'none', color: 'inherit' }}>
+                          <span className="title" style={{ display: 'block' }}>{s.full_name}</span>
+                          <span className="sub" style={{ display: 'block' }}>{courseName(f.course_id)}</span>
+                          <span className={`small num ${overdue ? 'text-danger' : ''}`} style={{ fontWeight: 700 }}>
                             {formatINR(amount)} · {overdue ? t('since', { date: formatDate(date, lang, false) }) : formatDate(date, lang, false)}
                           </span>
-                          {link && (
-                            <a className="btn btn-whatsapp btn-sm" href={link} target="_blank" rel="noopener"><Bell /> {t('remind')}</a>
-                          )}
-                        </div>
+                        </Link>
+                        {link && (
+                          <a className="icon-btn icon-btn-wa" href={link} target="_blank" rel="noopener" aria-label={t('remind')}><Bell /></a>
+                        )}
                       </div>
                     );
                   })}

@@ -53,7 +53,7 @@ export default function TeamPage() {
             </div>
           )}
         </Loaded>
-        <button className="btn btn-primary btn-lg btn-block" onClick={() => setAdding(true)}><UserPlus /> {t('team_add')}</button>
+        <button className="btn btn-primary btn-block" onClick={() => setAdding(true)}><UserPlus /> {t('team_add')}</button>
         {adding && <AddSheet onClose={() => setAdding(false)} />}
         {person && <PersonSheet person={person} onClose={() => setPerson(null)} />}
       </Page>

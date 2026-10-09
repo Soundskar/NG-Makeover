@@ -18,6 +18,7 @@ import { priceLabel, useServiceCatalog } from '../salon/data';
 import { payModeOptions } from '../students/AdmissionPage';
 import { useSettings } from '../students/data';
 import { overlaps, useBooking, useBookings } from './data';
+import { iconFor, ServiceIcon } from '../../components/ServiceIcon';
 
 const TIMES = ['10:00', '11:00', '12:00', '13:00', '15:00', '16:00', '17:00', '18:00'];
 const DURATIONS = [30, 60, 90, 120, 180, 240];
@@ -285,6 +286,7 @@ function ServicePicker({ selected, onDone, onClose }: { selected: string[]; onDo
                         {items.map((s) => (
                           <label key={s.id} className="list-item" style={{ cursor: 'pointer' }}>
                             <input type="checkbox" checked={ids.includes(s.id)} onChange={() => toggle(s.id)} />
+                            <span className="row-icon"><ServiceIcon name={iconFor(s.name_en)} size={18} /></span>
                             <span className="grow">{nameOf(s, lang)}</span>
                             <span className="end num muted small">{priceLabel(s, t('from'))}</span>
                           </label>

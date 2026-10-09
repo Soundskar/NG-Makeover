@@ -89,10 +89,10 @@ export default function ClientsPage() {
                           <span className="sub num" style={{ display: 'block' }}>
                             {c.visit_count ? t('callback_visits', { n: c.visit_count }) : t('client_new')}
                             {c.last_visit ? ` · ${formatDate(c.last_visit, lang, false)}` : ''}
+                            {c.next_booking && (
+                              <span style={{ color: 'var(--accent-ink)' }}> · {t('client_booked_on', { date: formatDate(c.next_booking, lang, false) })}</span>
+                            )}
                           </span>
-                          {c.next_booking && (
-                            <span className="badge badge-primary" style={{ marginTop: 4 }}>{t('client_booked_on', { date: formatDate(c.next_booking, lang, false) })}</span>
-                          )}
                         </span>
                         {c.spent > 0 && <span className="end num title">{formatINR(c.spent)}</span>}
                         <ChevronRight className="chev" />

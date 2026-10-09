@@ -9,7 +9,7 @@ import type { Lang } from '../../lib/types';
 import { waShareLink } from '../../lib/whatsapp';
 import { useBookings } from '../bookings/data';
 import { useClientsDue } from './CallbackPage';
-import { summarizeDay, useClosing, useUdhaarCollections, useUdhaarStatus, useVisits, type DaySummary } from './data';
+import { summarizeDay, useAdvancesOn, useClosing, useUdhaarCollections, useUdhaarStatus, useVisits, type DaySummary } from './data';
 import { VisitCard } from './VisitCard';
 
 /** Owner: everything logged in the salon on one day, by whom, and the day's closing. */
@@ -21,6 +21,7 @@ export default function SalonDayPage() {
   const visits = useVisits(day);
   const closing = useClosing(day);
   const collected = useUdhaarCollections(day);
+  const advances = useAdvancesOn(day);
   const udhaar = useUdhaarStatus();
   const nameOf = useTeamNames();
   const dueCount = useClientsDue().data?.length ?? 0;
@@ -59,55 +60,21 @@ export default function SalonDayPage() {
             const s = summarizeDay(all);
             return (
               <>
-                <div className="card stack" style={{ gap: 4 }}>
-                  <div className="stat-label">{t('total')}</div>
+                <div className="card hero stack" style={{ gap: 2 }}>
+                  <span className="stat-label">{day === today ? t('home_salon_today') : t('total')}</span>
                   <Money n={s.total} className="stat-value" animate />
-                  <div className="stat-sub num">{payBreakdown(s, t)}</div>
-                  <div className="stat-sub">
-                    {t('salon_entries', { n: s.count })}
-                    {s.discount > 0 ? ` · ${t('work_discounts', { amount: formatINR(s.discount) })}` : ''}
-                  </div>
+                  <span className="stat-sub num">
+                    {[t('salon_entries', { n: s.count }), payBreakdown(s, t),
+                      s.discount > 0 ? t('work_discounts', { amount: formatINR(s.discount) }) : null].filter(Boolean).join(' · ')}
+                  </span>
                   {collectedToday > 0 && (
-                    <div className="stat-sub text-success num">{t('udhaar_collected_day', { amount: formatINR(collectedToday) })}</div>
+                    <span className="stat-sub text-success num">{t('udhaar_collected_day', { amount: formatINR(collectedToday) })}</span>
                   )}
                 </div>
 
-                <div className="stat-grid">
-                  <Link to={`/bookings?d=${day}`} className="card-link stack" style={{ gap: 2 }}>
-                    <span className="stat-icon primary"><CalendarDays /></span>
-                    <span className="stat-label">{t('bookings_title')}</span>
-                    <span className="title num">{t('bookings_n', { n: dayBookings.length })}</span>
-                    <span className="stat-sub small">{dayBookings[0] ? t('bookings_next', { time: formatTime(dayBookings[0].start_time, lang) }) : t('bookings_add')}</span>
-                  </Link>
-                  <Link to="/clients" className="card-link stack" style={{ gap: 2 }}>
-                    <span className="stat-icon"><Contact /></span>
-                    <span className="stat-label">{t('clients_title')}</span>
-                    <span className="title">{t('clients_open')}</span>
-                    <span className="stat-sub small">{t('clients_short')}</span>
-                  </Link>
-                </div>
-                <div className="stat-grid">
-                  <Link to="/salon/udhaar" className="card-link stack" style={{ gap: 2 }}>
-                    <span className={`stat-icon ${owedTotal ? 'warning' : ''}`}><HandCoins /></span>
-                    <span className="stat-label">{t('udhaar_title')}</span>
-                    <Money n={owedTotal} className={`title num ${owedTotal ? 'text-warning' : ''}`} />
-                    <span className="stat-sub small">{t('udhaar_clients', { n: owedClients })}</span>
-                  </Link>
-                  <Link to="/salon/work" className="card-link stack" style={{ gap: 2 }}>
-                    <span className="stat-icon primary"><BarChart3 /></span>
-                    <span className="stat-label">{t('work_title')}</span>
-                    <span className="title">{t('this_month')}</span>
-                    <span className="stat-sub small">{t('work_short')}</span>
-                  </Link>
-                </div>
-                {dueCount > 0 && (
-                  <Link to="/salon/callback" className="notice notice-info">
-                    <PhoneCall /><span className="grow">{t('callback_alert', { n: dueCount })}</span><ChevronRight />
-                  </Link>
-                )}
-
-                {/* An entry or udhaar payment after closing changes the cash: say so, rather than show an old result. */}
-                {closing.data && collected.isSuccess && closing.data.expected_cash !== s.cash + collectedCash ? (
+                {/* An entry, udhaar payment or cash advance after closing changes the cash: say so, rather than show an old result. */}
+                {closing.data && collected.isSuccess && advances.isSuccess
+                  && closing.data.expected_cash !== s.cash + collectedCash + advances.data.cash ? (
                   <Link to={`/salon/close?day=${day}`} className="notice notice-warning">
                     <AlertTriangle />
                     <span className="grow">{t('closing_stale')}</span>
@@ -121,10 +88,62 @@ export default function SalonDayPage() {
                     <ChevronRight />
                   </Link>
                 ) : s.count > 0 && (
-                  <Link to={`/salon/close?day=${day}`} className="btn btn-primary btn-block btn-lg">
+                  <Link to={`/salon/close?day=${day}`} className="btn btn-primary btn-block">
                     <Lock /> {t('close_title')}
                   </Link>
                 )}
+
+                {/* The rest of the salon, one row each, with a number only where there is one. */}
+                <div className="list">
+                  <Link to={`/bookings?d=${day}`} className="list-item">
+                    <span className="row-icon info"><CalendarDays /></span>
+                    <span className="grow">
+                      <span className="title" style={{ display: 'block' }}>{t('bookings_title')}</span>
+                      <span className="sub num">
+                        {dayBookings[0]
+                          ? `${t('bookings_n', { n: dayBookings.length })} · ${t('bookings_next', { time: formatTime(dayBookings[0].start_time, lang) })}`
+                          : t('bookings_add')}
+                      </span>
+                    </span>
+                    <ChevronRight className="chev" />
+                  </Link>
+                  <Link to="/salon/udhaar" className="list-item">
+                    <span className={`row-icon ${owedTotal ? 'warning' : ''}`}><HandCoins /></span>
+                    <span className="grow">
+                      <span className="title" style={{ display: 'block' }}>{t('udhaar_title')}</span>
+                      <span className="sub num">
+                        {owedTotal ? `${formatINR(owedTotal)} · ${t('udhaar_clients', { n: owedClients })}` : t('udhaar_none')}
+                      </span>
+                    </span>
+                    <ChevronRight className="chev" />
+                  </Link>
+                  {dueCount > 0 && (
+                    <Link to="/salon/callback" className="list-item">
+                      <span className="row-icon info"><PhoneCall /></span>
+                      <span className="grow">
+                        <span className="title" style={{ display: 'block' }}>{t('callback_title')}</span>
+                        <span className="sub">{t('callback_alert', { n: dueCount })}</span>
+                      </span>
+                      <ChevronRight className="chev" />
+                    </Link>
+                  )}
+                  <Link to="/clients" className="list-item">
+                    <span className="row-icon"><Contact /></span>
+                    <span className="grow">
+                      <span className="title" style={{ display: 'block' }}>{t('clients_title')}</span>
+                      <span className="sub">{t('clients_short')}</span>
+                    </span>
+                    <ChevronRight className="chev" />
+                  </Link>
+                  <Link to="/salon/work" className="list-item">
+                    <span className="row-icon"><BarChart3 /></span>
+                    <span className="grow">
+                      <span className="title" style={{ display: 'block' }}>{t('work_title')}</span>
+                      <span className="sub">{t('work_short')}</span>
+                    </span>
+                    <ChevronRight className="chev" />
+                  </Link>
+                </div>
 
                 {s.byStaff.size > 0 && (
                   <section className="stack">

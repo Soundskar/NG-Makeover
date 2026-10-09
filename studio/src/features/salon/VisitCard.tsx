@@ -35,7 +35,7 @@ export function VisitCard({ v, showCreator, canCancel }: {
           )}
         </div>
         <div className="stack" style={{ gap: 0, alignItems: 'flex-end', textAlign: 'right', maxWidth: '45%' }}>
-          <Money n={v.total} className={v.voided ? '' : 'stat-label'} />
+          <Money n={v.total} className="title" />
           <span className="muted small">{payModeLabel(v, t)}</span>
         </div>
       </div>
@@ -47,10 +47,8 @@ export function VisitCard({ v, showCreator, canCancel }: {
               <span className="muted"> · {nameOf(l.staff_id)}</span>
             </span>
             <span className="num" style={{ textAlign: 'right' }}>
+              {l.price < l.list_price && <s className="muted" style={{ marginRight: 6 }}>{formatINR(l.list_price)}</s>}
               {formatINR(l.price)}
-              {l.price < l.list_price && (
-                <><br /><span className="badge badge-warning">{t('log_menu_price', { price: formatINR(l.list_price) })}</span></>
-              )}
             </span>
           </li>
         ))}

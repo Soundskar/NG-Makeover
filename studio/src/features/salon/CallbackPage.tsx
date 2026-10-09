@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { BellOff, Heart, MessageCircle, Phone } from 'lucide-react';
 import { useState } from 'react';
-import { Confirm, Count, Empty, Initials, Loaded, Page, TopBar, useToast } from '../../components/ui';
+import { Confirm, Empty, Initials, Loaded, Page, TopBar, useToast } from '../../components/ui';
 import { errorText, useI18n } from '../../i18n/i18n';
 import { daysBetween, formatDate, todayIST } from '../../lib/dates';
 import { haptic } from '../../lib/haptics';
@@ -66,13 +66,9 @@ export default function CallbackPage() {
         <Loaded q={due} skeleton="cards">
           {(rows) => (
             <>
-              <div className="card hero stack" style={{ gap: 2 }}>
-                <span className="stat-label">{t('callback_due')}</span>
-                <Count n={rows.length} className="stat-value" />
-                <span className="stat-sub">{t('callback_hint')}</span>
-              </div>
+              {rows.length > 0 && <p className="muted">{t('callback_hint')}</p>}
               {rows.length === 0 ? <Empty icon={<Heart />} title={t('callback_none')} sub={t('callback_none_sub')} /> : (
-                <div className="stack stagger">
+                <div className="list">
                   {rows.map((c) => {
                     const name = c.client_name ?? formatPhone(c.client_phone);
                     const first = (c.client_name ?? '').trim().split(/\s+/)[0] ?? '';
@@ -82,31 +78,29 @@ export default function CallbackPage() {
                     const wa = waLink(c.client_phone, msg);
                     const call = telLink(c.client_phone);
                     return (
-                      <article key={c.client_phone} className="card stack" style={{ gap: 10 }}>
-                        <div className="row" style={{ alignItems: 'flex-start' }}>
-                          <Initials name={name} />
-                          <span className="grow">
-                            <span style={{ fontWeight: 700, display: 'block' }}>{name}</span>
-                            <span className="muted small" style={{ display: 'block' }}>{c.last_services}</span>
-                            <span className="muted small num">
-                              {t('callback_last', { date: formatDate(c.last_visit, lang, false), n: ago })}
-                              {c.visit_count > 1 ? ` · ${t('callback_visits', { n: c.visit_count })}` : ''}
-                            </span>
+                      <div key={c.client_phone} className="list-item" style={{ flexWrap: 'wrap', rowGap: 8, alignItems: 'flex-start' }}>
+                        <Initials name={name} />
+                        <span className="grow">
+                          <span className="title" style={{ display: 'block' }}>{name}</span>
+                          <span className="sub" style={{ display: 'block' }}>{c.last_services}</span>
+                          <span className="sub num">
+                            {t('callback_last', { date: formatDate(c.last_visit, lang, false), n: ago })}
+                            {c.visit_count > 1 ? ` · ${t('callback_visits', { n: c.visit_count })}` : ''}
                           </span>
-                        </div>
-                        <div className="row" style={{ gap: 8 }}>
-                          {call && <a className="btn btn-sm btn-secondary" href={call} aria-label={t('call')}><Phone /></a>}
+                        </span>
+                        <div className="row" style={{ gap: 6, width: '100%', paddingLeft: 52 }}>
+                          {call && <a className="icon-btn icon-btn-sm icon-btn-fill" href={call} aria-label={t('call')}><Phone /></a>}
+                          <button className="icon-btn icon-btn-sm icon-btn-fill" aria-label={t('callback_stop')} onClick={() => setStopping(c)}>
+                            <BellOff />
+                          </button>
                           {wa && (
-                            <a className="btn btn-sm btn-whatsapp grow" href={wa} target="_blank" rel="noopener"
+                            <a className="btn btn-sm btn-whatsapp" style={{ marginLeft: 'auto' }} href={wa} target="_blank" rel="noopener"
                               onClick={() => { haptic(); note.mutate({ phone: c.client_phone, kind: 'reminded' }); }}>
                               <MessageCircle /> {t('callback_remind')}
                             </a>
                           )}
-                          <button className="btn btn-sm btn-secondary" aria-label={t('callback_stop')} onClick={() => setStopping(c)}>
-                            <BellOff />
-                          </button>
                         </div>
-                      </article>
+                      </div>
                     );
                   })}
                 </div>

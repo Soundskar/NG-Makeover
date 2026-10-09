@@ -58,6 +58,20 @@ export function useUdhaarCollections(day: string) {
   });
 }
 
+/** Booking advances received on one day: cash ones are in the drawer, so the day's
+ *  closing counts them (the database's close_day does the same). */
+export function useAdvancesOn(day: string) {
+  return useQuery({
+    queryKey: ['advances', day],
+    queryFn: async () => {
+      const rows = must(await supabase.from('appointment_advances').select('amount, mode')
+        .eq('paid_on', day).eq('voided', false)) as { amount: number; mode: string }[];
+      const by = (m: string) => rows.filter((r) => r.mode === m).reduce((n, r) => n + r.amount, 0);
+      return { cash: by('cash'), upi: by('upi') };
+    },
+  });
+}
+
 /** Owner: every udhaar entry, with what is still owed. */
 export function useUdhaarStatus(enabled = true) {
   return useQuery({

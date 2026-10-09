@@ -66,7 +66,7 @@ function describe(r: AuditRow, t: TFn, lang: 'en' | 'hi'): string {
       return `${formatDate(String(d.day), lang)} · ${t(String(d.status) as TKey)}`;
   }
 
-  const label = str(d.full_name || d.display_name || d.name_en || d.title_en);
+  const label = str(d.full_name || d.display_name || d.client_name || d.name || d.name_en || d.title_en);
   if (r.table_name === 'profiles' && r.action === 'update' && o.active !== n.active) {
     return `${label} · ${n.active ? t('login_switched_on') : t('login_switched_off')}`;
   }

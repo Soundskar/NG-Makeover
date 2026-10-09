@@ -432,6 +432,8 @@ a:active > .chev, button:active > .chev { transform: translateX(3px); }
 .icon-btn-fill { background: var(--surface-2); }
 .icon-btn-wa { background: #128C7E; color: #fff; }
 .icon-btn-wa:active { background: #0E7266; }
+.icon-btn-sm { width: 36px; height: 36px; }
+.icon-btn-sm svg { width: 18px; height: 18px; }
 
 .sticky-actions {
   position: sticky; bottom: calc(var(--nav-h) + var(--safe-b));
@@ -526,6 +528,9 @@ a:active > .chev, button:active > .chev { transform: translateX(3px); }
 }
 .choice svg { width: 20px; height: 20px; }
 @keyframes choose { 40% { transform: scale(1.04); } }
+/* A slimmer switch for lists (attendance for a whole batch). */
+.choices.compact { gap: 6px; }
+.choices.compact .choice { min-height: 38px; padding: 4px; font-size: 0.875rem; }
 
 /* chips: categories, weekdays */
 .chips { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; padding: 2px 0; }
@@ -854,6 +859,7 @@ body:has(.sheet-backdrop) .toast-wrap { top: calc(env(safe-area-inset-top, 0px) 
 .delta.flat { color: var(--text-2); }
 .hero .delta, .hero .delta .vs { color: rgb(255 255 255 / 0.9); }
 
+.kpi-value { font-family: var(--display); font-size: 1.25rem; font-weight: 700; letter-spacing: var(--tight); }
 .mini-stat { padding: 12px; border-radius: var(--radius-sm); background: var(--surface-2); }
 .mini-value { display: block; font-family: var(--display); font-size: 1.25rem; font-weight: 700; line-height: 1.2; }
 .meter { height: 10px; border-radius: 5px; background: var(--primary-soft); overflow: hidden; }
