@@ -44,25 +44,6 @@ export default function StudentPage() {
             const phone = student.whatsapp ?? student.phone;
             return (
               <>
-                <div className="card stack" style={{ gap: 10 }}>
-                  <div className="row-between">
-                    <span className={`badge ${student.status === 'active' ? 'badge-success' : 'badge-neutral'}`}>
-                      {t(`student_status_${student.status}`)}
-                    </span>
-                    {student.phone && <span className="muted num">{formatPhone(student.phone)}</span>}
-                  </div>
-                  <div className="row" style={{ gap: 8 }}>
-                    {student.phone && telLink(student.phone) && (
-                      <a className="btn btn-secondary grow" href={telLink(student.phone)!}><Phone /> {t('call')}</a>
-                    )}
-                    {phone && waLink(phone, '') && (
-                      <a className="btn btn-whatsapp grow" href={waLink(phone, '')!} target="_blank" rel="noopener">
-                        <MessageCircle /> WhatsApp
-                      </a>
-                    )}
-                  </div>
-                </div>
-
                 {enrollments.length > 1 && (
                   <div className="chips" role="toolbar" aria-label={t('adm_step_course')}>
                     {enrollments.map((e) => {
@@ -76,24 +57,42 @@ export default function StudentPage() {
                   </div>
                 )}
 
-                {enr && (
-                  <div className="card stack" style={{ gap: 4 }}>
-                    <div className="row-between">
-                      <strong>{course ? nameOf(course, lang) : ''}</strong>
+                {/* One card: the course she's on, when she comes, and a quick way to reach her. */}
+                <div className="card stack" style={{ gap: 10 }}>
+                  {enr ? (
+                    <div className="row" style={{ alignItems: 'flex-start' }}>
+                      <span className="grow stack" style={{ gap: 2 }}>
+                        <strong>{course ? nameOf(course, lang) : ''}</strong>
+                        <span className="small">
+                          {slot ? `${formatTime(slot.start_time, lang)}–${formatTime(slot.end_time, lang)} · ` : ''}
+                          {WEEK_ORDER.filter((d) => enr.days_of_week.includes(d)).map((d) => weekdayName(d, lang)).join(', ')}
+                        </span>
+                        <span className="muted small">
+                          {formatDate(enr.start_date, lang)} → {formatDate(enr.completed_on ?? enr.expected_end_date, lang)}
+                          {enr.trainer_ids.length > 0 ? ` · ${t('trainer')}: ${enr.trainer_ids.map(teamName).join(', ')}` : ''}
+                        </span>
+                      </span>
                       <span className={`badge ${enr.status === 'active' ? 'badge-primary' : 'badge-neutral'}`}>{t(`enr_status_${enr.status}`)}</span>
                     </div>
-                    <span className="muted small">
-                      {formatDate(enr.start_date, lang)} → {formatDate(enr.completed_on ?? enr.expected_end_date, lang)}
+                  ) : (
+                    <span className={`badge ${student.status === 'active' ? 'badge-success' : 'badge-neutral'}`} style={{ alignSelf: 'flex-start' }}>
+                      {t(`student_status_${student.status}`)}
                     </span>
-                    <span className="small">
-                      {slot ? `${formatTime(slot.start_time, lang)}–${formatTime(slot.end_time, lang)} · ` : ''}
-                      {WEEK_ORDER.filter((d) => enr.days_of_week.includes(d)).map((d) => weekdayName(d, lang)).join(', ')}
-                    </span>
-                    {enr.trainer_ids.length > 0 && (
-                      <span className="small muted">{t('trainer')}: {enr.trainer_ids.map(teamName).join(', ')}</span>
-                    )}
-                  </div>
-                )}
+                  )}
+                  {(student.phone || phone) && (
+                    <div className="row" style={{ gap: 8, borderTop: '1px solid var(--border)', paddingTop: 10 }}>
+                      <span className="grow muted num">{formatPhone(student.phone ?? phone!)}</span>
+                      {student.phone && telLink(student.phone) && (
+                        <a className="icon-btn icon-btn-fill" href={telLink(student.phone)!} aria-label={t('call')}><Phone /></a>
+                      )}
+                      {phone && waLink(phone, '') && (
+                        <a className="icon-btn icon-btn-wa" href={waLink(phone, '')!} target="_blank" rel="noopener" aria-label="WhatsApp">
+                          <MessageCircle />
+                        </a>
+                      )}
+                    </div>
+                  )}
+                </div>
 
                 <div className="tabs" role="tablist">
                   {tabs.map((x) => (

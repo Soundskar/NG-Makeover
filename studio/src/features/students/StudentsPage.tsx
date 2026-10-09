@@ -113,8 +113,8 @@ export default function StudentsPage() {
                           {courseNames}
                           {slot && ` · ${formatTime(slot.start_time, lang)}`}
                         </span>
-                        {badge && <span style={{ display: 'block', marginTop: 4 }}>{badge}</span>}
                       </span>
+                      {badge && <span className="end">{badge}</span>}
                       <ChevronRight className="chev" />
                     </Link>
                   );

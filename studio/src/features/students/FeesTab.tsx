@@ -56,34 +56,39 @@ export function FeesTab({ data, enrollment, course, receiptFor }: {
 
   return (
     <div className="stack-lg">
-      <div className="card stack" style={{ gap: 8 }}>
+      {/* Lead with what's still to collect; the rest is one line. */}
+      <div className="card stack" style={{ gap: 6 }}>
         <div className="row-between">
-          <span className="stat-label">{t('fee_paid')}</span>
+          <span className="stat-label">{summary.balance > 0 ? t('fee_balance') : t('fee_paid')}</span>
           <span className={`badge ${summary.status === 'clear' ? 'badge-success' : summary.status === 'overdue' ? 'badge-danger' : 'badge-warning'}`}>
             {t(`fee_status_${summary.status}`)}
           </span>
         </div>
-        <div className="num"><Money n={summary.paid} className="stat-value" animate /> <span className="muted">/ {formatINR(summary.agreedFee)}</span></div>
-        <div className={`bar ${summary.status === 'clear' ? 'success' : ''}`}><span style={{ width: `${pct}%` }} /></div>
-        {summary.balance > 0 && <div className="stat-sub">{t('fee_balance_amt', { amount: formatINR(summary.balance) })}</div>}
-        {summary.overdueAmount > 0 && (
-          <div className="notice notice-danger">{t('fee_overdue_amt', { amount: formatINR(summary.overdueAmount) })}</div>
+        <Money n={summary.balance > 0 ? summary.balance : summary.paid} className="stat-value" animate />
+        <div className={`bar thin ${summary.status === 'clear' ? 'success' : ''}`}><span style={{ width: `${pct}%` }} /></div>
+        <div className="stat-sub num">
+          {t('fee_paid_of', { paid: formatINR(summary.paid), total: formatINR(summary.agreedFee) })}
+          {summary.overdueAmount > 0
+            ? <> · <strong className="text-danger">{t('fee_overdue_amt', { amount: formatINR(summary.overdueAmount) })}</strong></>
+            : summary.nextDue ? ` · ${t('fee_next', { amount: formatINR(summary.nextDue.amount), date: formatDate(summary.nextDue.date, lang) })}` : ''}
+        </div>
+        {(fee.list_fee !== fee.agreed_fee || fee.kit_included) && (
+          <div className="small muted">
+            {[
+              fee.list_fee !== fee.agreed_fee
+                ? `${t('discount_amt', { amount: formatINR(fee.list_fee - fee.agreed_fee) })}${fee.discount_note ? ` (${fee.discount_note})` : ''}` : null,
+              fee.kit_included ? t('kit_included') : null,
+            ].filter(Boolean).join(' · ')}
+          </div>
         )}
-        {summary.nextDue && (
-          <div className="stat-sub">{t('fee_next', { amount: formatINR(summary.nextDue.amount), date: formatDate(summary.nextDue.date, lang) })}</div>
-        )}
-        {fee.list_fee !== fee.agreed_fee && (
-          <div className="small muted">{t('discount_amt', { amount: formatINR(fee.list_fee - fee.agreed_fee) })}{fee.discount_note ? ` · ${fee.discount_note}` : ''}</div>
-        )}
-        {fee.kit_included && <div className="small muted">{t('kit_included')}</div>}
       </div>
 
-      <div className="stack">
+      <div className="btn-pair">
         {summary.balance > 0 && (
-          <button className="btn btn-primary btn-lg btn-block" onClick={() => setRecordOpen(true)}><Plus /> {t('record_payment')}</button>
+          <button className="btn btn-primary" onClick={() => setRecordOpen(true)}><Plus /> {t('record_payment')}</button>
         )}
         {remindLink && (
-          <a className="btn btn-whatsapp btn-block" href={remindLink} target="_blank" rel="noopener"><Bell /> {t('remind_whatsapp')}</a>
+          <a className="btn btn-whatsapp" href={remindLink} target="_blank" rel="noopener"><Bell /> {t('remind_short')}</a>
         )}
       </div>
 
@@ -129,7 +134,7 @@ export function FeesTab({ data, enrollment, course, receiptFor }: {
                 <div key={p.id} className="list-item" style={{ opacity: 0.6 }}>{body}</div>
               ) : (
                 <button key={p.id} className="list-item" aria-label={`${t('payment_options')}: ${formatINR(p.amount)}`} onClick={() => setPicked(p)}>
-                  <span className="avatar" data-tint="5" style={{ width: 40, height: 40 }}><Receipt size={20} /></span>
+                  <span className="row-icon"><Receipt /></span>
                   {body}
                   <ChevronRight className="chev" />
                 </button>

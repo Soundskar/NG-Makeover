@@ -81,10 +81,11 @@ export function ProgressTab({ data, enrollment }: { data: StudentFull; enrollmen
         return (
           <div className="stack-lg">
             <div className="card stack" style={{ gap: 6 }}>
-              <div className="stat-label">{t('progress')}</div>
-              <div className="stat-value num"><Count n={pct} />%</div>
-              <div className={`bar ${pct === 100 ? 'success' : ''}`}><span style={{ width: `${pct}%` }} /></div>
-              <div className="stat-sub">{t('modules_done', { done, total })}</div>
+              <div className="row-between">
+                <span className="stat-label">{t('modules_done', { done, total })}</span>
+                <strong className="num"><Count n={pct} />%</strong>
+              </div>
+              <div className={`bar thin ${pct === 100 ? 'success' : ''}`}><span style={{ width: `${pct}%` }} /></div>
             </div>
 
             {setLevel.error && <ErrorBox error={setLevel.error} />}
@@ -101,7 +102,7 @@ export function ProgressTab({ data, enrollment }: { data: StudentFull; enrollmen
             ))}
 
             {me.is_owner && enrollment.status === 'active' && (
-              <button className="btn btn-soft btn-lg btn-block" onClick={() => setConfirmDone(true)}>
+              <button className="btn btn-soft btn-block" onClick={() => setConfirmDone(true)}>
                 <Award /> {t('mark_complete')}
               </button>
             )}

@@ -56,22 +56,25 @@ export function AttendanceTab({ data, enrollment }: { data: StudentFull; enrollm
 
   return (
     <div className="stack-lg">
-      <div className="card stack" style={{ gap: 4 }}>
-        <div className="stat-label">{t('attendance')}</div>
-        <div className="stat-value num">{pct == null ? '—' : <><Count n={pct} />%</>}</div>
-        {pct != null && <div className={`bar ${pct >= 80 ? 'success' : ''}`}><span style={{ width: `${pct}%` }} /></div>}
-        <div className="stat-sub">
-          {t('present')} {count('present')} · {t('absent')} {count('absent')} · {t('leave')} {count('leave')}
-        </div>
-      </div>
-
+      {/* Marking today is the job here, so it comes first. */}
       {enrollment.status === 'active' && (
-        <section className="stack">
+        <section className="stack" style={{ gap: 8 }}>
           <h2 className="section-title">{t('today')}</h2>
           <AttendanceButtons value={todays?.status ?? null} onChange={(s) => mark.mutate(s)} />
           {mark.error && <ErrorBox error={mark.error} />}
         </section>
       )}
+
+      <div className="card stack" style={{ gap: 6 }}>
+        <div className="row-between">
+          <span className="stat-label">{t('attendance')}</span>
+          <strong className="num">{pct == null ? '—' : <><Count n={pct} />%</>}</strong>
+        </div>
+        {pct != null && <div className={`bar thin ${pct >= 80 ? 'success' : ''}`}><span style={{ width: `${pct}%` }} /></div>}
+        <div className="stat-sub num">
+          {t('present')} {count('present')} · {t('absent')} {count('absent')} · {t('leave')} {count('leave')}
+        </div>
+      </div>
 
       <section className="stack">
         <h2 className="section-title">{t('attendance_history')}</h2>

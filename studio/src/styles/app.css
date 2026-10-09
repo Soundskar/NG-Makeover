@@ -429,6 +429,9 @@ a:active > .chev, button:active > .chev { transform: translateX(3px); }
 }
 .icon-btn:active { background: var(--surface-2); transform: scale(0.92); }
 .icon-btn svg { width: 22px; height: 22px; }
+.icon-btn-fill { background: var(--surface-2); }
+.icon-btn-wa { background: #128C7E; color: #fff; }
+.icon-btn-wa:active { background: #0E7266; }
 
 .sticky-actions {
   position: sticky; bottom: calc(var(--nav-h) + var(--safe-b));
@@ -681,6 +684,7 @@ body:has(.sheet-backdrop) .toast-wrap { top: calc(env(safe-area-inset-top, 0px) 
   animation: grow 0.8s var(--ease);
 }
 .bar.success > span { background: var(--success); }
+.bar.thin { height: 6px; }
 @keyframes grow { from { width: 0; } }
 
 /* ---------- tabs ---------- */
@@ -699,6 +703,9 @@ body:has(.sheet-backdrop) .toast-wrap { top: calc(env(safe-area-inset-top, 0px) 
 /* ---------- home ---------- */
 .home-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .home-actions .btn { padding: 0 12px; }
+/* Two actions side by side; one alone takes the full width. */
+.btn-pair { display: flex; gap: 8px; }
+.btn-pair > .btn { flex: 1; padding: 0 12px; }
 .home-time { min-width: 62px; font-weight: 700; }
 /* A small round icon at the start of a list row; its colour says how urgent. */
 .row-icon {
