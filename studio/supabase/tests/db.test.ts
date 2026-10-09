@@ -436,3 +436,63 @@ describe('academy', () => {
     expect(studentId).toBeTruthy();
   });
 });
+
+describe('reports and call-backs', () => {
+  const log = (who: Who, p: Record<string, unknown>) =>
+    as<{ id: string }>(who, `select log_visit($1::jsonb) as id`, [JSON.stringify(p)]);
+  const daysAgo = async (n: number) => (await su<{ d: string }>(`select (today_ist() - $1::int)::text as d`, [n]))[0]!.d;
+
+  interface Report {
+    salon: Record<string, number>;
+    by_day: { day: string; salon: number; fees: number; visits: number }[];
+    top_services: { name: string; count: number; amount: number }[];
+    by_staff: { staff_id: string; count: number; amount: number }[];
+    clients_new: number;
+    clients_returning: number;
+    udhaar: { given: number; collected: number };
+  }
+
+  it('reports a period: totals, each day, top services, new and returning clients', async () => {
+    const thread = await serviceId('Threading (eyebrows, forehead, upper lip, chin)');
+    const facial = await serviceId('Hydra facial');
+    // Rekha came before the period and once inside it; Meera is new.
+    await log('owner', { visit_date: '2026-02-01', client_name: 'Rekha', client_phone: '9844444444', paid_cash: 50,
+      lines: [{ service_id: thread, price: 50, staff_id: U.staff }] });
+    await log('owner', { visit_date: '2026-02-10', client_name: 'Rekha', client_phone: '9844444444', paid_cash: 50,
+      lines: [{ service_id: thread, price: 50, staff_id: U.staff }] });
+    await log('owner', { visit_date: '2026-02-11', client_name: 'Meera', client_phone: '9855555555', discount: 300,
+      paid_upi: 2000, paid_udhaar: 700, lines: [{ service_id: facial, price: 3000, staff_id: U.staff2 }] });
+
+    const [{ r }] = await as<{ r: Report }>('owner', `select studio_report('2026-02-10', '2026-02-12') as r`);
+    expect(r.salon).toEqual({ billed: 2750, visits: 2, discount: 300, cash: 50, upi: 2000, card: 0, udhaar: 700, clients: 2, no_phone: 0 });
+    expect(r.by_day.map((d) => [d.day, d.salon, d.visits])).toEqual([['2026-02-10', 50, 1], ['2026-02-11', 2700, 1], ['2026-02-12', 0, 0]]);
+    expect(r.top_services[0]).toEqual({ name: 'Hydra facial', count: 1, amount: 2700 });
+    expect(r.by_staff).toEqual([{ staff_id: U.staff2, count: 1, amount: 2700 }, { staff_id: U.staff, count: 1, amount: 50 }]);
+    expect([r.clients_new, r.clients_returning]).toEqual([1, 1]);
+    expect(r.udhaar).toEqual({ given: 700, collected: 0 });
+    await expect(as('staff', `select studio_report('2026-02-10', '2026-02-12')`)).rejects.toThrow(/Not allowed/);
+  });
+
+  it('lists clients due for a visit, and hides them once reminded or if they said no', async () => {
+    const thread = await serviceId('Threading (eyebrows, forehead, upper lip, chin)');
+    const bridal = await serviceId('Bridal makeup · Airbrush');
+    const line = (s: string, price: number) => [{ service_id: s, price, staff_id: U.staff }];
+    await log('owner', { visit_date: await daysAgo(30), client_name: 'Due Didi', client_phone: '9866666666', paid_cash: 50, lines: line(thread, 50) });
+    await log('owner', { visit_date: await daysAgo(10), client_name: 'Recent', client_phone: '9877777777', paid_cash: 50, lines: line(thread, 50) });
+    await log('owner', { visit_date: await daysAgo(60), client_name: 'Bride', client_phone: '9888888888', paid_cash: 20000, lines: line(bridal, 20000) });
+
+    const ours = `client_phone in ('9866666666', '9877777777', '9888888888', '9844444444')`;
+    const due = () => as<{ client_phone: string }>('owner',
+      `select client_phone, client_name, last_services, visit_count, due_on::text from clients_due() where ${ours} order by client_phone`);
+    // Threading comes back after 21 days: 30 days ago is due, 10 days ago isn't; bridal never.
+    // Rekha's last threading was in February, so she is due too.
+    expect(await due()).toEqual([
+      { client_phone: '9844444444', client_name: 'Rekha', last_services: 'Threading (eyebrows, forehead, upper lip, chin)', visit_count: 2, due_on: '2026-03-03' },
+      { client_phone: '9866666666', client_name: 'Due Didi', last_services: 'Threading (eyebrows, forehead, upper lip, chin)', visit_count: 1, due_on: await daysAgo(9) },
+    ]);
+    await as('owner', `insert into client_followups (client_phone, kind) values ('9866666666', 'reminded'), ('9844444444', 'stop')`);
+    expect(await due()).toEqual([]);
+    await expect(as('staff', `select * from clients_due()`)).rejects.toThrow(/Not allowed/);
+    await expect(as('staff', `insert into client_followups (client_phone, kind) values ('1', 'stop')`)).rejects.toThrow(/row-level security/);
+  });
+});
