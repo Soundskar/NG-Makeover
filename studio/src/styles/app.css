@@ -31,6 +31,12 @@
   --hero-to: #7E1E47;
   --hero-shadow: 0 10px 26px rgb(126 30 71 / 0.28);
   --gold: #C9A35E;
+  /* Chart series, fixed order, validated for colour-blind separation and contrast
+     (dataviz validate_palette.js, light vs the card surface). Never reorder. */
+  --series-1: #B02A5B; /* rouge */
+  --series-2: #2E6FC4; /* blue */
+  --series-3: #C27C00; /* marigold */
+  --series-4: #7A4FC9; /* violet */
 
   /* sage, marigold, sindoor */
   --success: #286B4A;
@@ -85,6 +91,10 @@
     --hero-to: #45122A;
     --hero-shadow: 0 10px 26px rgb(0 0 0 / 0.45);
     --gold: #E3CB98;
+    --series-1: #E25E90;
+    --series-2: #4E8FE6;
+    --series-3: #C2851A;
+    --series-4: #9177E0;
 
     --success: #8FD3A8;
     --success-soft: #1D3528;
@@ -755,6 +765,69 @@ body:has(.sheet-backdrop) .toast-wrap { top: calc(env(safe-area-inset-top, 0px) 
   text-align: center; font-weight: 700; font-size: 0.9375rem; color: var(--warning);
   animation: fade-in 0.2s;
 }
+
+/* ---------- reports: charts ---------- */
+.report-card { gap: 14px; }
+.card-title { font-family: var(--display); font-size: 1.1875rem; font-weight: 650; line-height: 1.25; }
+.chart { display: flex; flex-direction: column; gap: 8px; margin: 0; }
+.chart-plot { position: relative; width: 100%; touch-action: pan-y; }
+.chart-plot svg { display: block; overflow: visible; }
+.chart-plot .grid { stroke: var(--border); stroke-width: 1; shape-rendering: crispEdges; }
+.chart-plot .axis-label { fill: var(--text-2); font-size: 11px; font-family: var(--font); font-variant-numeric: tabular-nums; }
+.chart-plot .hover-band { fill: var(--surface-2); }
+.chart-plot g.dim path { opacity: 0.45; transition: opacity 0.15s; }
+.chart-plot rect[tabindex]:focus { outline: none; }
+.chart-plot rect[tabindex]:focus-visible { outline: 2px solid var(--primary); outline-offset: -2px; }
+/* Tooltip: the value is the strong part; the series name follows. */
+.chart-tip {
+  position: absolute; top: -6px; transform: translate(-50%, -100%); z-index: 3;
+  display: flex; flex-direction: column; gap: 2px; min-width: 120px;
+  padding: 8px 12px; border-radius: 12px;
+  background: var(--text); color: var(--bg); box-shadow: var(--shadow-lg);
+  font-size: 0.875rem; pointer-events: none; animation: fade-in 0.12s;
+}
+.chart-tip .tip-title { font-weight: 600; opacity: 0.85; }
+.chart-tip .tip-row { display: flex; align-items: center; gap: 6px; }
+.chart-tip .tip-row i { width: 12px; height: 3px; border-radius: 2px; flex-shrink: 0; }
+.chart-tip .muted { color: inherit; opacity: 0.75; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 0.875rem; color: var(--text-2); }
+.legend-item { display: inline-flex; align-items: center; gap: 6px; }
+.legend-item i { width: 12px; height: 12px; border-radius: 3px; }
+/* The table twin of every chart. */
+.numbers summary { cursor: pointer; color: var(--primary); font-weight: 600; font-size: 0.9375rem; min-height: 36px; display: flex; align-items: center; }
+.numbers table { width: 100%; border-collapse: collapse; font-size: 0.9375rem; margin-top: 4px; }
+.numbers th, .numbers td { padding: 6px 4px; border-bottom: 1px solid var(--border); text-align: right; font-weight: 400; }
+.numbers th:first-child { text-align: left; }
+.numbers thead th { color: var(--text-2); font-weight: 600; font-size: 0.8125rem; }
+
+/* Payment mix: one bar, 2px surface gaps between parts, legend carries the numbers. */
+.stack-bar { display: flex; gap: 2px; height: 14px; border-radius: 7px; overflow: hidden; background: var(--surface); }
+.stack-bar span { min-width: 4px; transition: flex-grow 0.5s var(--ease); }
+.stack-legend { display: flex; flex-direction: column; gap: 6px; margin-top: 12px; }
+.stack-legend-row { display: flex; align-items: center; gap: 10px; }
+.stack-legend-row i { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
+.stack-legend-row .pct { width: 3.2em; text-align: right; }
+
+.bar-list { list-style: none; display: flex; flex-direction: column; gap: 12px; }
+.bar-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bar-row { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
+.bar-fill { height: 8px; border-radius: 0 4px 4px 0; animation: grow 0.7s var(--ease); flex-shrink: 0; }
+
+.delta { display: inline-flex; align-items: center; gap: 3px; font-size: 0.875rem; font-weight: 600; flex-wrap: wrap; }
+.delta svg { width: 16px; height: 16px; }
+.delta .vs { font-weight: 400; color: var(--text-2); }
+.delta.good { color: var(--success); }
+.delta.bad { color: var(--danger); }
+.delta.flat { color: var(--text-2); }
+.hero .delta, .hero .delta .vs { color: rgb(255 255 255 / 0.9); }
+
+.mini-stat { padding: 12px; border-radius: var(--radius-sm); background: var(--surface-2); }
+.mini-value { display: block; font-family: var(--display); font-size: 1.5rem; font-weight: 700; line-height: 1.2; }
+.meter { height: 10px; border-radius: 5px; background: var(--primary-soft); overflow: hidden; }
+.meter > span { display: block; height: 100%; border-radius: 5px; background: var(--series-1); animation: grow 0.8s var(--ease); }
+
+/* Five tabs for the owner: keep labels on one line. */
+.bottom-nav a { white-space: nowrap; }
 
 /* ---------- period switcher (day / month) ---------- */
 .period { display: flex; align-items: center; justify-content: space-between; gap: 8px; }

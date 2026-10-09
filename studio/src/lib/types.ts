@@ -55,6 +55,8 @@ export interface Service extends Named {
   price_min: number | null;
   price_max: number | null;
   is_variable: boolean;
+  /** Days until a client usually comes back for this; null = no reminder. */
+  rebook_days: number | null;
   active: boolean;
   sort: number;
 }

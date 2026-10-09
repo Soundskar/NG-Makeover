@@ -3,6 +3,7 @@ import {
   addDays, addMonths, addMonthsFractional, daysBetween, financialYear, todayIST, weekdayOf,
 } from './dates';
 import { allocatePayments, discountFrom, formatINR, makePlan, parseRupees, payParts, summarizeFees } from './money';
+import { changePct, compactINR, niceCeil, periodOf, shiftAnchor } from './periods';
 import { normalizePhone, waLink } from './whatsapp';
 
 describe('dates', () => {
@@ -129,5 +130,40 @@ describe('whatsapp', () => {
   it('builds wa.me links with the message encoded', () => {
     expect(waLink('98765 43210', 'Hi & thanks')).toBe('https://wa.me/919876543210?text=Hi%20%26%20thanks');
     expect(waLink('bad', 'x')).toBeNull();
+  });
+});
+
+describe('report periods', () => {
+  it('weeks run Monday to Sunday, and a running week is compared with the same days last week', () => {
+    // 2026-10-09 is a Friday.
+    const w = periodOf('week', '2026-10-09', '2026-10-09');
+    expect([w.from, w.to, w.end, w.prevFrom, w.prevTo, w.complete]).toEqual(
+      ['2026-10-05', '2026-10-09', '2026-10-11', '2026-09-28', '2026-10-02', false]);
+    const past = periodOf('week', '2026-09-30', '2026-10-09');
+    expect([past.from, past.to, past.prevFrom, past.prevTo, past.complete]).toEqual(
+      ['2026-09-28', '2026-10-04', '2026-09-21', '2026-09-27', true]);
+  });
+
+  it('months compare the same days while running, and the whole month once finished', () => {
+    const m = periodOf('month', '2026-10-09', '2026-10-09');
+    expect([m.from, m.to, m.prevFrom, m.prevTo]).toEqual(['2026-10-01', '2026-10-09', '2026-09-01', '2026-09-09']);
+    const done = periodOf('month', '2026-09-15', '2026-10-09');
+    expect([done.from, done.to, done.prevFrom, done.prevTo]).toEqual(['2026-09-01', '2026-09-30', '2026-08-01', '2026-08-31']);
+    // 31 March running to its end is compared with all of February, not past it.
+    const mar = periodOf('month', '2027-03-31', '2027-03-31');
+    expect([mar.prevFrom, mar.prevTo]).toEqual(['2027-02-01', '2027-02-28']);
+  });
+
+  it('a day is compared with the day before; shifting moves by a whole period', () => {
+    const d = periodOf('day', '2026-10-09', '2026-10-09');
+    expect([d.prevFrom, d.prevTo]).toEqual(['2026-10-08', '2026-10-08']);
+    expect(shiftAnchor(periodOf('month', '2026-10-09', '2026-10-09'), -1)).toBe('2026-09-01');
+    expect(shiftAnchor(periodOf('week', '2026-10-09', '2026-10-09'), -1)).toBe('2026-09-28');
+  });
+
+  it('formats axis money the Indian way and rounds chart tops', () => {
+    expect([compactINR(950), compactINR(12_400), compactINR(125_000), compactINR(1_500)]).toEqual(['₹950', '₹12k', '₹1.3L', '₹1.5k']);
+    expect([niceCeil(0), niceCeil(3_400), niceCeil(9_400), niceCeil(18_000)]).toEqual([1, 5_000, 10_000, 20_000]);
+    expect([changePct(120, 100), changePct(80, 100), changePct(5, 0)]).toEqual([20, -20, null]);
   });
 });

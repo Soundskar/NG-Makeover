@@ -18,6 +18,8 @@ const SalonDayPage = lazy(() => import('./features/salon/SalonDayPage'));
 const CloseDayPage = lazy(() => import('./features/salon/CloseDayPage'));
 const UdhaarPage = lazy(() => import('./features/salon/UdhaarPage'));
 const StaffWorkPage = lazy(() => import('./features/salon/StaffWorkPage'));
+const CallbackPage = lazy(() => import('./features/salon/CallbackPage'));
+const ReportsPage = lazy(() => import('./features/reports/ReportsPage'));
 const StudentsPage = lazy(() => import('./features/students/StudentsPage'));
 const StudentPage = lazy(() => import('./features/students/StudentPage'));
 const AdmissionPage = lazy(() => import('./features/students/AdmissionPage'));
@@ -84,6 +86,8 @@ export function App() {
         {owner && <Route path="salon/close" element={<CloseDayPage />} />}
         {owner && <Route path="salon/udhaar" element={<UdhaarPage />} />}
         {owner && <Route path="salon/work" element={<StaffWorkPage />} />}
+        {owner && <Route path="salon/callback" element={<CallbackPage />} />}
+        {owner && <Route path="reports" element={<ReportsPage />} />}
 
         {trainer && <Route path="classes" element={<ClassesPage />} />}
         {trainer && <Route path="students" element={<StudentsPage />} />}

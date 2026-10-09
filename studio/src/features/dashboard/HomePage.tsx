@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import {
-  AlertTriangle, CalendarCheck, CalendarClock, ChevronRight, HandCoins, HardDriveDownload, IndianRupee, Lock, Plus, UserPlus, Users, UserX,
+  AlertTriangle, CalendarCheck, CalendarClock, ChevronRight, HandCoins, HardDriveDownload, IndianRupee, Lock, PhoneCall, Plus, UserPlus, Users, UserX,
 } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
@@ -12,6 +12,7 @@ import { formatINR, sum } from '../../lib/money';
 import { isScheduledOn } from '../../lib/schedule';
 import { must, supabase } from '../../lib/supabase';
 import type { Attendance } from '../../lib/types';
+import { useClientsDue } from '../salon/CallbackPage';
 import { summarizeDay, useClosing, useUdhaarStatus, useVisits } from '../salon/data';
 import { useActiveEnrollments, useFeeStatus, useSettings } from '../students/data';
 
@@ -28,6 +29,7 @@ export default function HomePage() {
   const settings = useSettings();
   const enrollments = useActiveEnrollments();
   const udhaar = useUdhaarStatus();
+  const dueCount = useClientsDue().data?.length ?? 0;
   const collected = useQuery({
     queryKey: ['home', 'collected', today],
     queryFn: async () => {
@@ -65,7 +67,7 @@ export default function HomePage() {
   const backupDays = lastBackup ? daysBetween(lastBackup.slice(0, 10), today) : null;
   const hasData = (enrollments.data?.length ?? 0) > 0 || (salon?.count ?? 0) > 0;
 
-  const alerts: { key: string; to: string; icon: ReactNode; text: string; tone: 'danger' | 'warning' }[] = [];
+  const alerts: { key: string; to: string; icon: ReactNode; text: string; tone: 'danger' | 'warning' | 'info' }[] = [];
   if (yVisits.data && summarizeDay(yVisits.data).count > 0 && yClosing.isSuccess && !yClosing.data) {
     alerts.push({ key: 'close', to: `/salon/close?day=${yesterday}`, icon: <Lock />, text: t('alert_not_closed'), tone: 'warning' });
   }
@@ -85,6 +87,10 @@ export default function HomePage() {
       key: 'udhaar', to: '/salon/udhaar', icon: <HandCoins />, tone: 'warning',
       text: t('alert_udhaar_old', { amount: formatINR(sum(oldUdhaar.map((u) => u.outstanding))) }),
     });
+  }
+  // Not urgent, just a nudge: clients whose usual gap since their last visit has passed.
+  if (dueCount > 0) {
+    alerts.push({ key: 'callback', to: '/salon/callback', icon: <PhoneCall />, tone: 'info', text: t('callback_alert', { n: dueCount }) });
   }
   if (settings.isSuccess && hasData && (backupDays == null || backupDays >= 7)) {
     alerts.push({

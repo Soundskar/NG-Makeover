@@ -1,4 +1,4 @@
-import { AlertTriangle, BarChart3, CheckCircle2, ChevronLeft, ChevronRight, HandCoins, Lock, Plus, Share2 } from 'lucide-react';
+import { AlertTriangle, BarChart3, CheckCircle2, ChevronLeft, ChevronRight, HandCoins, Lock, PhoneCall, Plus, Share2 } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useTeamNames } from '../../auth/auth';
 import { Empty, Loaded, Money, Page, TopBar } from '../../components/ui';
@@ -7,6 +7,7 @@ import { addDays, formatDate, formatWeekday, todayIST } from '../../lib/dates';
 import { formatINR, sum } from '../../lib/money';
 import type { Lang } from '../../lib/types';
 import { waShareLink } from '../../lib/whatsapp';
+import { useClientsDue } from './CallbackPage';
 import { summarizeDay, useClosing, useUdhaarCollections, useUdhaarStatus, useVisits, type DaySummary } from './data';
 import { VisitCard } from './VisitCard';
 
@@ -21,6 +22,7 @@ export default function SalonDayPage() {
   const collected = useUdhaarCollections(day);
   const udhaar = useUdhaarStatus();
   const nameOf = useTeamNames();
+  const dueCount = useClientsDue().data?.length ?? 0;
   const liveCollections = (collected.data ?? []).filter((c) => !c.voided);
   const collectedToday = sum(liveCollections.map((c) => c.amount));
   const collectedCash = sum(liveCollections.filter((c) => c.mode === 'cash').map((c) => c.amount));
@@ -82,6 +84,11 @@ export default function SalonDayPage() {
                     <span className="stat-sub small">{t('work_short')}</span>
                   </Link>
                 </div>
+                {dueCount > 0 && (
+                  <Link to="/salon/callback" className="notice notice-info">
+                    <PhoneCall /><span className="grow">{t('callback_alert', { n: dueCount })}</span><ChevronRight />
+                  </Link>
+                )}
 
                 {/* An entry or udhaar payment after closing changes the cash: say so, rather than show an old result. */}
                 {closing.data && collected.isSuccess && closing.data.expected_cash !== s.cash + collectedCash ? (

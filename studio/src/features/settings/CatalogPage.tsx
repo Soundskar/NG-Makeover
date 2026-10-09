@@ -37,6 +37,7 @@ export default function CatalogPage() {
                     <button key={s.id} className="list-item" onClick={() => setEditing(s)} style={{ opacity: s.active ? 1 : 0.55 }}>
                       <span className="grow">
                         <span className="title" style={{ display: 'block', fontWeight: 500 }}>{nameOf(s, lang)}</span>
+                        {s.rebook_days != null && <span className="sub num" style={{ display: 'block' }}>{t('service_rebook_n', { n: s.rebook_days })}</span>}
                         {!s.active && <span className="badge badge-neutral"><EyeOff size={14} /> {t('service_hidden')}</span>}
                       </span>
                       <span className="end num">{priceLabel(s, t('from'))}</span>
@@ -74,6 +75,7 @@ function ServiceSheet({ service, categories, defaultCategory, onClose }: {
   const [max, setMax] = useState<number | null>(service?.price_max ?? null);
   const [variable, setVariable] = useState(service?.is_variable ?? false);
   const [active, setActive] = useState(service?.active ?? true);
+  const [rebook, setRebook] = useState(service?.rebook_days != null ? String(service.rebook_days) : '');
 
   const rangeOk = !ranged || (min != null && max != null && min <= max);
   const m = useMutation({
@@ -82,6 +84,7 @@ function ServiceSheet({ service, categories, defaultCategory, onClose }: {
         name_en: nameEn.trim(), name_hi: nameHi.trim() || null, category_id: categoryId,
         price: ranged ? min! : price!, price_min: ranged ? min : null, price_max: ranged ? max : null,
         is_variable: !ranged && variable, active,
+        rebook_days: rebook ? Math.min(365, Math.max(1, Number(rebook))) : null,
       };
       if (service) must(await supabase.from('services').update(row).eq('id', service.id));
       else must(await supabase.from('services').insert({ ...row, sort: 999 }));
@@ -119,6 +122,10 @@ function ServiceSheet({ service, categories, defaultCategory, onClose }: {
             {check(variable, setVariable, t('service_variable'))}
           </>
         )}
+        <Field label={`${t('service_rebook')} (${t('optional')})`} htmlFor="s-rb" hint={t('service_rebook_hint')}>
+          <input id="s-rb" className="input num" inputMode="numeric" value={rebook} placeholder="30"
+            onChange={(e) => setRebook(e.target.value.replace(/\D/g, '').slice(0, 3))} />
+        </Field>
         {check(active, setActive, t('service_active'))}
         {m.error && <ErrorBox error={m.error} />}
         <button className="btn btn-primary btn-lg btn-block"

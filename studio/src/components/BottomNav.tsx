@@ -1,4 +1,4 @@
-import { CalendarCheck, ClipboardList, Home, Menu, PlusCircle, Scissors, UserRound, Users } from 'lucide-react';
+import { BarChart3, CalendarCheck, ClipboardList, Home, Menu, PlusCircle, Scissors, UserRound, Users } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { NavLink } from 'react-router-dom';
 import { useMe } from '../auth/auth';
@@ -27,6 +27,7 @@ export function BottomNav() {
       { to: '/', label: 'nav_home', icon: <Home />, end: true },
       { to: '/students', label: 'nav_students', icon: <Users />, badge: overdue },
       { to: '/salon', label: 'nav_salon', icon: <Scissors /> },
+      { to: '/reports', label: 'nav_reports', icon: <BarChart3 /> },
       { to: '/more', label: 'nav_more', icon: <Menu /> },
     ];
   } else {

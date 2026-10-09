@@ -1,4 +1,4 @@
-import { BarChart3, ChevronRight, Clock, GraduationCap, HandCoins, HardDriveDownload, History, IndianRupee, ListChecks, Scissors, UserRound, Users } from 'lucide-react';
+import { BarChart3, ChevronRight, Clock, GraduationCap, HandCoins, HardDriveDownload, History, IndianRupee, ListChecks, PhoneCall, Scissors, UserRound, Users } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { Page, TopBar } from '../../components/ui';
@@ -7,6 +7,7 @@ import { useI18n, type TKey } from '../../i18n/i18n';
 const items: { to: string; label: TKey; sub: TKey; icon: ReactNode }[] = [
   { to: '/fees', label: 'followup_title', sub: 'more_fees_sub', icon: <IndianRupee /> },
   { to: '/classes', label: 'classes_title', sub: 'more_classes_sub', icon: <ListChecks /> },
+  { to: '/salon/callback', label: 'callback_title', sub: 'more_callback_sub', icon: <PhoneCall /> },
   { to: '/salon/work', label: 'work_title', sub: 'work_sub', icon: <BarChart3 /> },
   { to: '/salon/udhaar', label: 'udhaar_title', sub: 'more_udhaar_sub', icon: <HandCoins /> },
   { to: '/more/catalog', label: 'catalog_title', sub: 'more_catalog_sub', icon: <Scissors /> },
