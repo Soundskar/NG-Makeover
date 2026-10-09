@@ -254,19 +254,20 @@ describe('salon work log: discounts, udhaar, work per person', () => {
     expect(s).toEqual({ udhaar: 2000, collected: 0, outstanding: 2000 });
   });
 
-  it('any staff member can look up udhaar by phone and collect it, never more than is owed', async () => {
+  it('staff see what a client owes, but only the owner collects it, never more than is owed', async () => {
     const owed = await as('staff2', `select visit_id, outstanding from udhaar_for_phone('9822222222')`);
     expect(owed).toEqual([{ visit_id: udhaarVisit, outstanding: 2000 }]);
-    await expect(as('staff2', `select collect_udhaar($1, 2500, 'cash')`, [udhaarVisit])).rejects.toThrow(/Only 2000/);
+    await expect(as('staff2', `select collect_udhaar($1, 500, 'cash')`, [udhaarVisit])).rejects.toThrow(/Not allowed/);
     await expect(as('trainer', `select collect_udhaar($1, 100, 'cash')`, [udhaarVisit])).rejects.toThrow(/Not allowed/);
-    await as('staff2', `select collect_udhaar($1, 500, 'cash')`, [udhaarVisit]);
+    await expect(as('owner', `select collect_udhaar($1, 2500, 'cash')`, [udhaarVisit])).rejects.toThrow(/Only 2000/);
+    await as('owner', `select collect_udhaar($1, 500, 'cash')`, [udhaarVisit]);
     const [s] = await as('owner', `select collected, outstanding from udhaar_status where visit_id = $1`, [udhaarVisit]);
     expect(s).toEqual({ collected: 500, outstanding: 1500 });
-    // Only through the function, and staff see just what they collected themselves today.
+    // Only through the function, and staff never see the owner's collections.
     await expect(as('staff', `insert into udhaar_collections (visit_id, amount, mode) values ($1, 1, 'cash')`, [udhaarVisit]))
       .rejects.toThrow(/permission denied/);
     expect(await as('staff', `select id from udhaar_collections`)).toHaveLength(0);
-    expect(await as('staff2', `select id from udhaar_collections`)).toHaveLength(1);
+    expect(await as('owner', `select id from udhaar_collections`)).toHaveLength(1);
   });
 
   it('an entry with udhaar already collected cannot be cancelled until that collection is', async () => {
@@ -294,10 +295,10 @@ describe('salon work log: discounts, udhaar, work per person', () => {
     await expect(as('staff', `select * from work_by_staff($1::date, $1::date)`, [d])).rejects.toThrow(/Not allowed/);
   });
 
-  it('udhaar collections are cancelled, not deleted: staff their own, the owner any', async () => {
+  it('udhaar collections are cancelled by the owner, not deleted', async () => {
     const [col] = await su<{ id: string }>(`select id from udhaar_collections where visit_id = $1`, [udhaarVisit]);
     await expect(as('staff', `select void_udhaar_collection($1, 'x')`, [col!.id])).rejects.toThrow(/Not allowed/);
-    await as('staff2', `select void_udhaar_collection($1, 'Wrong amount')`, [col!.id]);
+    await as('owner', `select void_udhaar_collection($1, 'Wrong amount')`, [col!.id]);
     const [s] = await as('owner', `select outstanding from udhaar_status where visit_id = $1`, [udhaarVisit]);
     expect(s).toEqual({ outstanding: 2000 });
     await as('staff', `select void_visit($1, 'Client changed her mind')`, [udhaarVisit]);
@@ -316,8 +317,9 @@ describe('salon work log: discounts, udhaar, work per person', () => {
       client_name: 'Kavya', client_phone: phone, paid_cash: 1000, paid_udhaar: 2000,
       lines: [{ service_id: facial, price: 3000, staff_id: U.staff }],
     });
-    await expect(as('staff2', `select collect_udhaar_for_phone($1, 3000, 'upi')`, [phone])).rejects.toThrow(/Only 2350/);
-    await as('staff2', `select collect_udhaar_for_phone($1, 1000, 'upi')`, [phone]);
+    await expect(as('staff2', `select collect_udhaar_for_phone($1, 1000, 'upi')`, [phone])).rejects.toThrow(/Not allowed/);
+    await expect(as('owner', `select collect_udhaar_for_phone($1, 3000, 'upi')`, [phone])).rejects.toThrow(/Only 2350/);
+    await as('owner', `select collect_udhaar_for_phone($1, 1000, 'upi')`, [phone]);
     const owed = await as('owner',
       `select visit_id, outstanding from udhaar_status where client_phone = $1 order by visit_date`, [phone]);
     expect(owed).toEqual([{ visit_id: older!.id, outstanding: 0 }, { visit_id: newer!.id, outstanding: 1350 }]);
@@ -522,12 +524,23 @@ describe('clients, bookings and reviews', () => {
   it('books a client, takes an advance, and takes it off the bill', async () => {
     const facial = await serviceId('Hydra facial');
     const wax = await serviceId('Rica wax · Full arms');
-    const appt = await book('staff', '9899999999', 'Bride To Be', await dayFromToday(1), [facial], 'Hydra facial');
+    const appt = await book('owner', '9899999999', 'Bride To Be', await dayFromToday(1), [facial], 'Hydra facial');
     // Booking her made her a client.
     expect(await su(`select name from clients where phone = '9899999999'`)).toEqual([{ name: 'Bride To Be' }]);
-    await as('staff', `select add_advance($1, 1000, 'upi')`, [appt]);
+    await as('owner', `select add_advance($1, 1000, 'upi')`, [appt]);
 
-    const bill = (advance: number, cash: number) => log('staff', {
+    // For now bookings are the owner's alone: staff can't see, make or take money on them.
+    await expect(book('staff', '9899999998', 'Walk In', await dayFromToday(1), [facial], 'Hydra facial'))
+      .rejects.toThrow(/row-level security/);
+    await expect(as('staff', `select add_advance($1, 100, 'cash')`, [appt])).rejects.toThrow(/Not allowed/);
+    expect(await as('staff', `select id from appointments`)).toHaveLength(0);
+    expect(await as('staff', `select id from appointment_advances`)).toHaveLength(0);
+    const card = async (who: Who) =>
+      (await as<{ c: { next_booking: unknown } }>(who, `select client_card('9899999999') as c`))[0]!.c.next_booking;
+    expect(await card('staff')).toBeNull();
+    expect(await card('owner')).toMatchObject({ id: appt, services: 'Hydra facial' });
+
+    const bill = (advance: number, cash: number) => log('owner', {
       appointment_id: appt, paid_advance: advance, paid_cash: cash, client_name: 'Bride To Be', client_phone: '9899999999',
       lines: [{ service_id: facial, price: 3000, staff_id: U.staff }],
     });
@@ -540,7 +553,7 @@ describe('clients, bookings and reviews', () => {
     const [adv] = await su<{ id: string }>(`select id from appointment_advances where appointment_id = $1`, [appt]);
     await expect(as('owner', `select void_advance($1, 'x')`, [adv!.id])).rejects.toThrow(/used in the bill/);
     // Cancelling the entry reopens the booking, advance and all.
-    await as('staff', `select void_visit($1, 'Wrong client')`, [visit]);
+    await as('owner', `select void_visit($1, 'Wrong client')`, [visit]);
     expect(await su(`select status, visit_id from appointments where id = $1`, [appt])).toEqual([{ status: 'booked', visit_id: null }]);
 
     await expect(log('staff', { paid_advance: 100, paid_cash: 250, lines: [{ service_id: wax, price: 350, staff_id: U.staff }] }))
@@ -568,7 +581,7 @@ describe('clients, bookings and reviews', () => {
       paid_cash: 50, lines: [{ service_id: thread, price: 50, staff_id: U.staff }] });
     const isDue = async () => (await as('owner', `select 1 from clients_due() where client_phone = '9812121212'`)).length === 1;
     expect(await isDue()).toBe(true);
-    await book('staff', '9812121212', 'Booked Didi', await dayFromToday(2), [thread], 'Threading');
+    await book('owner', '9812121212', 'Booked Didi', await dayFromToday(2), [thread], 'Threading');
     expect(await isDue()).toBe(false);
 
     await as('staff', `select mark_review_asked('9812121212')`);

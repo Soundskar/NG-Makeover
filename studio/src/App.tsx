@@ -84,8 +84,8 @@ export function App() {
         {owner && <Route path="salon/udhaar" element={<UdhaarPage />} />}
         {owner && <Route path="salon/work" element={<StaffWorkPage />} />}
         {owner && <Route path="salon/callback" element={<CallbackPage />} />}
-        {staff && <Route path="bookings" element={<BookingsPage />} />}
-        {staff && <Route path="bookings/new" element={<BookingFormPage />} />}
+        {owner && <Route path="bookings" element={<BookingsPage />} />}
+        {owner && <Route path="bookings/new" element={<BookingFormPage />} />}
         {owner && <Route path="clients" element={<ClientsPage />} />}
         {owner && <Route path="clients/:phone" element={<ClientPage />} />}
         {owner && <Route path="more/studio" element={<StudioPage />} />}

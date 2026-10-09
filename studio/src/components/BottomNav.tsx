@@ -1,4 +1,4 @@
-import { BarChart3, CalendarCheck, CalendarDays, ClipboardList, Home, Menu, PlusCircle, Scissors, UserRound, Users } from 'lucide-react';
+import { BarChart3, CalendarCheck, ClipboardList, Home, Menu, PlusCircle, Scissors, UserRound, Users } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { NavLink } from 'react-router-dom';
 import { useMe } from '../auth/auth';
@@ -34,7 +34,6 @@ export function BottomNav() {
     items = [];
     if (me.is_staff) {
       items.push({ to: '/salon/new', label: 'nav_new_entry', icon: <PlusCircle /> });
-      items.push({ to: '/bookings', label: 'nav_bookings', icon: <CalendarDays /> });
       items.push({ to: '/my-day', label: 'nav_my_day', icon: <ClipboardList /> });
     }
     if (me.is_trainer) {

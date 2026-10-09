@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Banknote, Check, CreditCard, Smartphone } from 'lucide-react';
+import { Ban, Banknote, Check, CreditCard, Smartphone } from 'lucide-react';
 import { useState } from 'react';
 import { Choices, ErrorBox, Field, MoneyInput, Sheet, SheetCloseButton, useToast } from '../../components/ui';
 import { useI18n } from '../../i18n/i18n';
@@ -49,6 +49,35 @@ export function CollectSheet({ phone, name, owed, onClose }: {
         </button>
         <SheetCloseButton />
       </div>
+    </Sheet>
+  );
+}
+
+/** Undo a udhaar collection (cancelled with a reason, never deleted). */
+export function CancelCollectionSheet({ id, onClose }: { id: string; onClose: () => void }) {
+  const { t } = useI18n();
+  const qc = useQueryClient();
+  const toast = useToast();
+  const [reason, setReason] = useState('');
+  const m = useMutation({
+    mutationFn: async () => must(await supabase.rpc('void_udhaar_collection', { p_id: id, p_reason: reason })),
+    onSuccess: () => {
+      for (const k of ['udhaar', 'closing']) qc.invalidateQueries({ queryKey: [k] });
+      toast({ kind: 'info', text: t('entry_cancelled') });
+      onClose();
+    },
+  });
+  return (
+    <Sheet open onClose={onClose} title={t('udhaar_cancel')}>
+      <form className="stack" onSubmit={(e) => { e.preventDefault(); m.mutate(); }}>
+        <Field label={t('entry_cancel_reason')} htmlFor="ucr">
+          <input id="ucr" className="input" value={reason} onChange={(e) => setReason(e.target.value)} required autoFocus />
+        </Field>
+        {m.error && <ErrorBox error={m.error} />}
+        <button className="btn btn-danger btn-lg btn-block" disabled={!reason.trim() || m.isPending} aria-busy={m.isPending}>
+          <Ban /> {t('udhaar_cancel')}
+        </button>
+      </form>
     </Sheet>
   );
 }

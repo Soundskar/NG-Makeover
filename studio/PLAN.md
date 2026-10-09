@@ -48,6 +48,8 @@ The app is seeded from these, so Mom only confirms the catalog instead of typing
 | Fees, installments, payments | all | **no** | **no** |
 | Attendance and progress | all | their own students | no |
 | Salon entries | all, any date | no | add for today; see/edit only their own, edit within 15 min |
+| Bookings and advances | all | no | no (for now, Mom's call on 9 Oct 2026) |
+| Collecting old udhaar | yes | no | no (they can still mark a bill as udhaar and see what a client owes) |
 | Staff accounts, reports, backup | yes | no | no |
 
 - **Login:** a username plus a 6-digit PIN.

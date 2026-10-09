@@ -517,8 +517,9 @@ export default function LogVisitPage() {
                 <span className="grow">
                   {t('udhaar_owed', { amount: formatINR(owed) })}
                   <span className="small" style={{ display: 'block' }}>{t('since', { date: formatDate(owedRows[0]!.visit_date, lang, false) })}</span>
+                  {!me.is_owner && <span className="small" style={{ display: 'block' }}>{t('udhaar_owner_collects')}</span>}
                 </span>
-                <button className="btn btn-sm btn-secondary" onClick={() => setCollectOpen(true)}>{t('udhaar_collect')}</button>
+                {me.is_owner && <button className="btn btn-sm btn-secondary" onClick={() => setCollectOpen(true)}>{t('udhaar_collect')}</button>}
               </div>
             )}
           </div>

@@ -11,8 +11,7 @@ import type { UdhaarCollection, UdhaarStatus } from '../../lib/types';
 import { formatPhone, telLink, waLink } from '../../lib/whatsapp';
 import { useSettings } from '../students/data';
 import { useUdhaarStatus } from './data';
-import { CancelCollectionSheet } from './MyDayPage';
-import { CollectSheet } from './UdhaarSheets';
+import { CancelCollectionSheet, CollectSheet } from './UdhaarSheets';
 
 interface ClientOwes {
   phone: string;
