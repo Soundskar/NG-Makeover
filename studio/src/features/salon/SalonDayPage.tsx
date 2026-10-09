@@ -1,12 +1,13 @@
-import { AlertTriangle, BarChart3, CheckCircle2, ChevronLeft, ChevronRight, HandCoins, Lock, PhoneCall, Plus, Share2 } from 'lucide-react';
+import { AlertTriangle, BarChart3, CalendarDays, CheckCircle2, ChevronLeft, ChevronRight, Contact, HandCoins, Lock, PhoneCall, Plus, Share2 } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useTeamNames } from '../../auth/auth';
 import { Empty, Loaded, Money, Page, TopBar } from '../../components/ui';
 import { useI18n, type TFn } from '../../i18n/i18n';
-import { addDays, formatDate, formatWeekday, todayIST } from '../../lib/dates';
+import { addDays, formatDate, formatTime, formatWeekday, todayIST } from '../../lib/dates';
 import { formatINR, sum } from '../../lib/money';
 import type { Lang } from '../../lib/types';
 import { waShareLink } from '../../lib/whatsapp';
+import { useBookings } from '../bookings/data';
 import { useClientsDue } from './CallbackPage';
 import { summarizeDay, useClosing, useUdhaarCollections, useUdhaarStatus, useVisits, type DaySummary } from './data';
 import { VisitCard } from './VisitCard';
@@ -23,6 +24,7 @@ export default function SalonDayPage() {
   const udhaar = useUdhaarStatus();
   const nameOf = useTeamNames();
   const dueCount = useClientsDue().data?.length ?? 0;
+  const dayBookings = (useBookings(day, day).data?.bookings ?? []).filter((b) => b.status === 'booked');
   const liveCollections = (collected.data ?? []).filter((c) => !c.voided);
   const collectedToday = sum(liveCollections.map((c) => c.amount));
   const collectedCash = sum(liveCollections.filter((c) => c.mode === 'cash').map((c) => c.amount));
@@ -70,6 +72,20 @@ export default function SalonDayPage() {
                   )}
                 </div>
 
+                <div className="stat-grid">
+                  <Link to={`/bookings?d=${day}`} className="card-link stack" style={{ gap: 2 }}>
+                    <span className="stat-icon primary"><CalendarDays /></span>
+                    <span className="stat-label">{t('bookings_title')}</span>
+                    <span className="title num">{t('bookings_n', { n: dayBookings.length })}</span>
+                    <span className="stat-sub small">{dayBookings[0] ? t('bookings_next', { time: formatTime(dayBookings[0].start_time, lang) }) : t('bookings_add')}</span>
+                  </Link>
+                  <Link to="/clients" className="card-link stack" style={{ gap: 2 }}>
+                    <span className="stat-icon"><Contact /></span>
+                    <span className="stat-label">{t('clients_title')}</span>
+                    <span className="title">{t('clients_open')}</span>
+                    <span className="stat-sub small">{t('clients_short')}</span>
+                  </Link>
+                </div>
                 <div className="stat-grid">
                   <Link to="/salon/udhaar" className="card-link stack" style={{ gap: 2 }}>
                     <span className={`stat-icon ${owedTotal ? 'warning' : ''}`}><HandCoins /></span>

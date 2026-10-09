@@ -129,3 +129,11 @@ export function monthEnd(iso: ISODate): ISODate {
 export function hourIST(now: Date = new Date()): number {
   return Number(new Intl.DateTimeFormat('en-GB', { timeZone: IST, hour: '2-digit', hourCycle: 'h23' }).format(now));
 }
+
+/** Days from `today` until the next birthday (0 = today). 29 Feb is kept on 28 Feb in other years. */
+export function daysUntilBirthday(day: number, month: number, today: ISODate): number {
+  const [y] = parts(today);
+  const on = (year: number) => toISO(year, month, Math.min(day, daysInMonth(year, month)));
+  const thisYear = on(y);
+  return daysBetween(today, thisYear >= today ? thisYear : on(y + 1));
+}

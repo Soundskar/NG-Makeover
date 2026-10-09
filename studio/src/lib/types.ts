@@ -66,6 +66,8 @@ export interface Settings {
   studio_phone: string | null;
   weekly_off: number | null;
   last_backup_at: string | null;
+  /** Google Business Profile "Ask for reviews" link. */
+  google_review_url: string | null;
 }
 
 export interface TimeSlot {
@@ -189,6 +191,9 @@ export interface Visit {
   paid_card: number;
   /** Left to pay later. */
   paid_udhaar: number;
+  /** Paid earlier as a booking advance. */
+  paid_advance: number;
+  appointment_id: string | null;
   note: string | null;
   created_by: string;
   created_at: string;
@@ -281,4 +286,69 @@ export function nameOf(x: Named, lang: Lang): string {
 
 export function titleOf(m: Pick<CourseModule, 'title_en' | 'title_hi'>, lang: Lang): string {
   return lang === 'hi' && m.title_hi ? m.title_hi : m.title_en;
+}
+
+/** One client, keyed by her 10-digit mobile number. */
+export interface Client {
+  phone: string;
+  name: string | null;
+  birth_day: number | null;
+  birth_month: number | null;
+  notes: string | null;
+  review_asked_on: string | null;
+}
+
+/** What staff see about a client at the counter (no money). */
+export interface ClientCard extends Client {
+  visits: number;
+  last_visit: string | null;
+  last_services: string | null;
+  next_booking: { id: string; day: string; time: string; services: string | null } | null;
+}
+
+export interface ClientRow {
+  phone: string;
+  name: string | null;
+  visit_count: number;
+  spent: number;
+  first_visit: string | null;
+  last_visit: string | null;
+  birth_day: number | null;
+  birth_month: number | null;
+  has_notes: boolean;
+  next_booking: string | null;
+}
+
+export type BookingStatus = 'booked' | 'done' | 'cancelled' | 'no_show';
+
+export interface Booking {
+  id: string;
+  client_phone: string;
+  client_name: string;
+  day: string;
+  start_time: string;
+  duration_minutes: number;
+  service_ids: string[];
+  services_text: string | null;
+  staff_id: string | null;
+  quoted: number | null;
+  note: string | null;
+  status: BookingStatus;
+  cancel_reason: string | null;
+  visit_id: string | null;
+  reminded_on: string | null;
+  created_by: string | null;
+  created_at: string;
+}
+
+export interface Advance {
+  id: string;
+  appointment_id: string;
+  amount: number;
+  mode: PayMode;
+  paid_on: string;
+  received_by: string | null;
+  created_at: string;
+  voided: boolean;
+  void_reason: string | null;
 }

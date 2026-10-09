@@ -1,24 +1,26 @@
 import { useQuery } from '@tanstack/react-query';
 import {
-  AlertTriangle, CalendarCheck, CalendarClock, ChevronRight, HandCoins, HardDriveDownload, IndianRupee, Lock, PhoneCall, Plus, UserPlus, Users, UserX,
+  AlertTriangle, BellRing, Cake, CalendarCheck, CalendarClock, CalendarDays, ChevronRight, HandCoins, HardDriveDownload, IndianRupee, Lock, PhoneCall, Plus, UserPlus, Users, UserX,
 } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { useMe } from '../../auth/auth';
 import { Count, Greeting, Money, Page } from '../../components/ui';
 import { useI18n } from '../../i18n/i18n';
-import { addDays, daysBetween, monthStart, todayIST, weekdayOf } from '../../lib/dates';
+import { addDays, daysBetween, daysUntilBirthday, formatTime, monthStart, todayIST, weekdayOf } from '../../lib/dates';
 import { formatINR, sum } from '../../lib/money';
 import { isScheduledOn } from '../../lib/schedule';
 import { must, supabase } from '../../lib/supabase';
 import type { Attendance } from '../../lib/types';
+import { useBookings } from '../bookings/data';
+import { useClientList } from '../clients/data';
 import { useClientsDue } from '../salon/CallbackPage';
 import { summarizeDay, useClosing, useUdhaarStatus, useVisits } from '../salon/data';
 import { useActiveEnrollments, useFeeStatus, useSettings } from '../students/data';
 
 export default function HomePage() {
   const me = useMe();
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const today = todayIST();
   const yesterday = addDays(today, -1);
 
@@ -30,6 +32,12 @@ export default function HomePage() {
   const enrollments = useActiveEnrollments();
   const udhaar = useUdhaarStatus();
   const dueCount = useClientsDue().data?.length ?? 0;
+  const tomorrow = addDays(today, 1);
+  const soon = useBookings(today, tomorrow).data?.bookings ?? [];
+  const todayBookings = soon.filter((b) => b.day === today && b.status === 'booked');
+  const toRemind = soon.filter((b) => b.day === tomorrow && b.status === 'booked' && !b.reminded_on);
+  const birthdaysToday = (useClientList().data ?? []).filter((c) => c.birth_day && c.birth_month
+    && daysUntilBirthday(c.birth_day, c.birth_month, today) === 0);
   const collected = useQuery({
     queryKey: ['home', 'collected', today],
     queryFn: async () => {
@@ -88,6 +96,12 @@ export default function HomePage() {
       text: t('alert_udhaar_old', { amount: formatINR(sum(oldUdhaar.map((u) => u.outstanding))) }),
     });
   }
+  if (toRemind.length) {
+    alerts.push({ key: 'remind', to: `/bookings?d=${tomorrow}`, icon: <BellRing />, tone: 'info', text: t('bookings_remind_tomorrow', { n: toRemind.length }) });
+  }
+  for (const c of birthdaysToday.slice(0, 2)) {
+    alerts.push({ key: `bday-${c.phone}`, to: '/clients', icon: <Cake />, tone: 'info', text: t('birthday_alert', { name: c.name ?? c.phone }) });
+  }
   // Not urgent, just a nudge: clients whose usual gap since their last visit has passed.
   if (dueCount > 0) {
     alerts.push({ key: 'callback', to: '/salon/callback', icon: <PhoneCall />, tone: 'info', text: t('callback_alert', { n: dueCount }) });
@@ -127,6 +141,27 @@ export default function HomePage() {
             ].filter(Boolean).join(' · ')
             : '…'}
         </span>
+      </Link>
+
+      <Link to="/bookings" className="card-link stack" style={{ gap: 6 }}>
+        <div className="row-between">
+          <span className="stat-icon primary"><CalendarDays /></span>
+          <ChevronRight className="chev" />
+        </div>
+        <span className="stat-label">{t('home_bookings_today')}</span>
+        {todayBookings.length === 0 ? <span className="stat-sub">{t('bookings_none_today')}</span> : (
+          <span className="stack" style={{ gap: 4 }}>
+            {todayBookings.slice(0, 3).map((b) => (
+              <span key={b.id} className="row" style={{ gap: 10 }}>
+                <strong className="num" style={{ minWidth: 68 }}>{formatTime(b.start_time, lang)}</strong>
+                <span className="grow" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {b.client_name}{b.services_text ? <span className="muted"> · {b.services_text}</span> : null}
+                </span>
+              </span>
+            ))}
+            {todayBookings.length > 3 && <span className="muted small">{t('bookings_more', { n: todayBookings.length - 3 })}</span>}
+          </span>
+        )}
       </Link>
 
       <div className="stat-grid">

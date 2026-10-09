@@ -20,6 +20,11 @@ const UdhaarPage = lazy(() => import('./features/salon/UdhaarPage'));
 const StaffWorkPage = lazy(() => import('./features/salon/StaffWorkPage'));
 const CallbackPage = lazy(() => import('./features/salon/CallbackPage'));
 const ReportsPage = lazy(() => import('./features/reports/ReportsPage'));
+const BookingsPage = lazy(() => import('./features/bookings/BookingsPage'));
+const BookingFormPage = lazy(() => import('./features/bookings/BookingFormPage'));
+const ClientsPage = lazy(() => import('./features/clients/ClientsPage'));
+const ClientPage = lazy(() => import('./features/clients/ClientPage'));
+const StudioPage = lazy(() => import('./features/settings/StudioPage'));
 const StudentsPage = lazy(() => import('./features/students/StudentsPage'));
 const StudentPage = lazy(() => import('./features/students/StudentPage'));
 const AdmissionPage = lazy(() => import('./features/students/AdmissionPage'));
@@ -87,6 +92,11 @@ export function App() {
         {owner && <Route path="salon/udhaar" element={<UdhaarPage />} />}
         {owner && <Route path="salon/work" element={<StaffWorkPage />} />}
         {owner && <Route path="salon/callback" element={<CallbackPage />} />}
+        {staff && <Route path="bookings" element={<BookingsPage />} />}
+        {staff && <Route path="bookings/new" element={<BookingFormPage />} />}
+        {owner && <Route path="clients" element={<ClientsPage />} />}
+        {owner && <Route path="clients/:phone" element={<ClientPage />} />}
+        {owner && <Route path="more/studio" element={<StudioPage />} />}
         {owner && <Route path="reports" element={<ReportsPage />} />}
 
         {trainer && <Route path="classes" element={<ClassesPage />} />}

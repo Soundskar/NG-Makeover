@@ -1,9 +1,9 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-  AlertCircle, Banknote, Check, ChevronDown, CreditCard, HandCoins, Pencil, Plus, Smartphone, Split, Tag, X,
+  AlertCircle, Banknote, CalendarCheck, Check, ChevronDown, CreditCard, HandCoins, Pencil, Plus, Smartphone, Split, StickyNote, Tag, X,
 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useMe, useTeam } from '../../auth/auth';
 import {
   Choices, Empty, ErrorBox, Field, Greeting, Loaded, Money, MoneyInput, Page, PhoneInput, SearchInput, Sheet, TopBar, useToast,
@@ -15,6 +15,10 @@ import { discountFrom, formatINR, payParts, sum, type PayParts } from '../../lib
 import { must, supabase } from '../../lib/supabase';
 import { nameOf, type Service, type ServiceCategory } from '../../lib/types';
 import { normalizePhone } from '../../lib/whatsapp';
+import { advancePaid, useBooking } from '../bookings/data';
+import { useClientCard } from '../clients/data';
+import { ReviewSheet, shouldAskReview } from '../clients/ReviewSheet';
+import { useSettings } from '../students/data';
 import { needsPrice, priceLabel, useFrequentServices, useServiceCatalog, useUdhaarForPhone } from './data';
 import { CollectSheet } from './UdhaarSheets';
 
@@ -83,13 +87,20 @@ export default function LogVisitPage() {
   const today = todayIST();
   // The owner can add a missed entry for an earlier day (from the salon day screen).
   const date = me.is_owner && params.get('date') ? params.get('date')! : today;
+  // Started from a booking: services, client and advance come from it.
+  const bookingId = params.get('booking');
+  const bookingQ = useBooking(bookingId);
+  const navigate = useNavigate();
+  const settings = useSettings();
+  const [prefilled, setPrefilled] = useState(false);
+  const [reviewFor, setReviewFor] = useState<{ phone: string; name: string | null; then?: string } | null>(null);
 
   const catalog = useServiceCatalog();
   const frequent = useFrequentServices();
   const team = useTeam();
 
   const storeKey = draftKey(me.id, date);
-  const [draft] = useState(() => loadDraft(storeKey));
+  const [draft] = useState(() => (bookingId ? null : loadDraft(storeKey)));
   const [step, setStep] = useState<'pick' | 'review'>(draft?.step ?? 'pick');
   const [lines, setLines] = useState<Line[]>(draft?.lines ?? []);
   const [search, setSearch] = useState('');
@@ -110,6 +121,7 @@ export default function LogVisitPage() {
   const [bump, setBump] = useState(0);
 
   useEffect(() => {
+    if (bookingId) return; // a booking is its own draft
     try {
       if (lines.length) {
         const d: Draft = { step, lines, phone, client, pay, splitOn, split, discountOn, discountKind, discountValue, discountNote };
@@ -118,7 +130,7 @@ export default function LogVisitPage() {
     } catch {
       // No storage: the entry just isn't kept between visits.
     }
-  }, [storeKey, step, lines, phone, client, pay, splitOn, split, discountOn, discountKind, discountValue, discountNote]);
+  }, [bookingId, storeKey, step, lines, phone, client, pay, splitOn, split, discountOn, discountKind, discountValue, discountNote]);
 
   const doers = useMemo(
     () => (team.data ?? []).filter((p) => p.active && (p.is_staff || p.is_owner)),
@@ -129,7 +141,11 @@ export default function LogVisitPage() {
   const subtotal = sum(lines.map((l) => l.price));
   const discount = discountOn ? discountFrom(subtotal, discountKind, discountValue) : 0;
   const total = subtotal - discount;
-  const parts = payParts(splitOn ? 'split' : pay, total, split);
+  // An advance taken at booking counts as already paid.
+  const advanceAvail = bookingQ.data && bookingId ? advancePaid(bookingQ.data.advances, bookingId) : 0;
+  const advanceUsed = Math.min(advanceAvail, total);
+  const toCollect = total - advanceUsed;
+  const parts = payParts(splitOn ? 'split' : pay, toCollect, split);
   const partsSum = parts.cash + parts.upi + parts.card + parts.udhaar;
 
   // Each step starts at the top, so the services just picked are in view.
@@ -151,6 +167,25 @@ export default function LogVisitPage() {
     // Only look up when the number changes, not when the name is edited.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tenDigits]);
+
+  useEffect(() => {
+    const b = bookingQ.data?.booking;
+    const all = catalog.data?.services;
+    if (!b || !all || prefilled) return;
+    const picked = b.service_ids.map((id) => all.find((s) => s.id === id)).filter(Boolean) as Service[];
+    // One service with an agreed price (a bridal package, say): bill it at that price.
+    setLines(picked.map((s) => ({
+      key: nextKey++, service: s, price: picked.length === 1 && b.quoted != null ? b.quoted : s.price, staffId: b.staff_id ?? defaultStaff,
+    })));
+    setPhone(b.client_phone);
+    setClient(b.client_name);
+    if (picked.length) setStep('review');
+    setPrefilled(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bookingQ.data, catalog.data, prefilled]);
+
+  // Notes about her (allergies, preferences) and when she last asked for a review.
+  const card = useClientCard(phone);
 
   // Does this client already owe udhaar from an earlier visit?
   const owedRows = useUdhaarForPhone(phone).data ?? [];
@@ -189,6 +224,8 @@ export default function LogVisitPage() {
         paid_upi: parts.upi,
         paid_card: parts.card,
         paid_udhaar: parts.udhaar,
+        paid_advance: advanceUsed,
+        appointment_id: bookingId,
         discount,
         discount_note: discount > 0 ? discountNote.trim() || null : null,
         visit_date: date,
@@ -199,8 +236,16 @@ export default function LogVisitPage() {
     })) as string,
     onSuccess: (id) => {
       const amount = formatINR(total);
+      // A happy client with a phone number, not asked lately: offer the Google review request.
+      const ask = tenDigits && settings.data?.settings.google_review_url && shouldAskReview(card.data?.review_asked_on, today)
+        ? { phone: tenDigits, name: client.trim() || null } : null;
+      const back = bookingId ? `/bookings?d=${bookingQ.data?.booking.day ?? today}` : undefined;
       reset();
-      for (const k of ['visits', 'work', 'udhaar']) qc.invalidateQueries({ queryKey: [k] });
+      for (const k of ['visits', 'work', 'udhaar', 'bookings', 'booking', 'client', 'clients', 'client-card', 'clients-due', 'report']) {
+        qc.invalidateQueries({ queryKey: [k] });
+      }
+      if (ask) setReviewFor({ ...ask, then: back });
+      else if (back) navigate(back, { replace: true });
       toast({
         kind: 'success',
         text: t('log_saved', { amount }),
@@ -221,7 +266,7 @@ export default function LogVisitPage() {
 
   // What still stands between Mom's staff and the Save button, in words.
   const needsClient = parts.udhaar > 0 && (!client.trim() || !tenDigits);
-  const blocker = partsSum !== total ? t('log_split_left', { amount: formatINR(total - partsSum) })
+  const blocker = partsSum !== toCollect ? t('log_split_left', { amount: formatINR(toCollect - partsSum) })
     : needsClient ? t('udhaar_needs_client') : null;
   const canSave = lines.length > 0 && !blocker && !save.isPending;
 
@@ -237,8 +282,9 @@ export default function LogVisitPage() {
         <TopBar title={t('log_title')} back={lines.length > 0 ? undefined : me.is_owner ? '/salon' : undefined} />
         <Page>
           {/* Staff start their day here, so this is where they're greeted. */}
-          {!me.is_owner && lines.length === 0 && date === today && <Greeting name={me.display_name} />}
+          {!me.is_owner && lines.length === 0 && date === today && !bookingId && <Greeting name={me.display_name} />}
           {dateBanner}
+          {bookingQ.data && <BookingBanner name={bookingQ.data.booking.client_name} services={bookingQ.data.booking.services_text} />}
           <SearchInput value={search} onChange={setSearch} placeholder={t('log_search')} />
           <Loaded q={catalog}>
             {({ categories, services }) => {
@@ -329,6 +375,7 @@ export default function LogVisitPage() {
       } />
       <Page>
         {dateBanner}
+        {bookingQ.data && <BookingBanner name={bookingQ.data.booking.client_name} services={bookingQ.data.booking.services_text} />}
         <section className="stack">
           <h2 className="section-title">{t('log_services')}</h2>
           <div className="list">
@@ -434,6 +481,12 @@ export default function LogVisitPage() {
             <span className="stat-label">{t('total')}</span>
             <Money n={total} className="stat-value" animate />
           </div>
+          {advanceUsed > 0 && (
+            <>
+              <div className="row-between text-success"><span>{t('log_advance_paid')}</span><span className="num">−{formatINR(advanceUsed)}</span></div>
+              <div className="bill-total row-between"><span className="stat-label">{t('log_to_collect')}</span><Money n={toCollect} className="stat-value" animate /></div>
+            </>
+          )}
         </div>
 
         {/* ----- client ----- */}
@@ -450,6 +503,9 @@ export default function LogVisitPage() {
               <input id="cn" className="input" value={client} onChange={(e) => setClient(e.target.value)} autoComplete="off"
                 aria-invalid={needsClient && !client.trim() ? true : undefined} />
             </Field>
+            {card.data?.notes && (
+              <div className="notice notice-info" style={{ animation: 'row-in 0.25s' }}><StickyNote /><span>{card.data.notes}</span></div>
+            )}
             {owed > 0 && (
               <div className="notice notice-warning" style={{ alignItems: 'center', animation: 'row-in 0.25s' }}>
                 <AlertCircle />
@@ -483,7 +539,7 @@ export default function LogVisitPage() {
           )}
           <button className="btn btn-link" style={{ alignSelf: 'flex-start' }} onClick={() => {
             haptic();
-            if (!splitOn) setSplit({ ...NO_SPLIT, [pay]: total });
+            if (!splitOn) setSplit({ ...NO_SPLIT, [pay]: toCollect });
             setSplitOn(!splitOn);
           }}>
             <Split size={18} /> {splitOn ? t('split_off') : t('split_on')}
@@ -495,11 +551,11 @@ export default function LogVisitPage() {
                   <MoneyInput id={`sp-${k}`} value={split[k]} onChange={(n) => setSplit((s) => ({ ...s, [k]: n }))} />
                 </Field>
               ))}
-              <p className={partsSum === total ? 'text-success' : 'text-warning'} style={{ fontWeight: 700 }}>
-                {partsSum === total
+              <p className={partsSum === toCollect ? 'text-success' : 'text-warning'} style={{ fontWeight: 700 }}>
+                {partsSum === toCollect
                   ? <><Check size={18} style={{ verticalAlign: '-3px' }} /> {t('log_split_ok')}</>
-                  : partsSum < total ? t('log_split_left', { amount: formatINR(total - partsSum) })
-                    : t('log_split_over', { amount: formatINR(partsSum - total) })}
+                  : partsSum < toCollect ? t('log_split_left', { amount: formatINR(toCollect - partsSum) })
+                    : t('log_split_over', { amount: formatINR(partsSum - toCollect) })}
               </p>
             </div>
           )}
@@ -555,8 +611,22 @@ export default function LogVisitPage() {
         <CollectSheet phone={tenDigits} name={client.trim() || owedRows[0]?.client_name || null} owed={owed}
           onClose={() => setCollectOpen(false)} />
       )}
+      {reviewFor && <ReviewPrompt r={reviewFor} onDone={() => { const to = reviewFor.then; setReviewFor(null); if (to) navigate(to, { replace: true }); }} />}
     </>
   );
+}
+
+function BookingBanner({ name, services }: { name: string; services: string | null }) {
+  const { t } = useI18n();
+  return (
+    <div className="notice notice-info"><CalendarCheck /><span>{t('log_from_booking', { name })}{services ? ` · ${services}` : ''}</span></div>
+  );
+}
+
+/** Straight after saving: "Ask her for a Google review?" */
+function ReviewPrompt({ r, onDone }: { r: { phone: string; name: string | null }; onDone: () => void }) {
+  const { t } = useI18n();
+  return <ReviewSheet phone={r.phone} name={r.name} title={t('review_after_title', { name: r.name || t('client') })} onClose={onDone} />;
 }
 
 /** A category that opens to show its services, so the whole menu fits on one screen. */

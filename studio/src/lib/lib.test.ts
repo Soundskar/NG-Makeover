@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  addDays, addMonths, addMonthsFractional, daysBetween, financialYear, todayIST, weekdayOf,
+  addDays, addMonths, addMonthsFractional, daysBetween, daysUntilBirthday, financialYear, todayIST, weekdayOf,
 } from './dates';
 import { allocatePayments, discountFrom, formatINR, makePlan, parseRupees, payParts, summarizeFees } from './money';
 import { changePct, compactINR, niceCeil, periodOf, shiftAnchor } from './periods';
@@ -165,5 +165,14 @@ describe('report periods', () => {
     expect([compactINR(950), compactINR(12_400), compactINR(125_000), compactINR(1_500)]).toEqual(['₹950', '₹12k', '₹1.3L', '₹1.5k']);
     expect([niceCeil(0), niceCeil(3_400), niceCeil(9_400), niceCeil(18_000)]).toEqual([1, 5_000, 10_000, 20_000]);
     expect([changePct(120, 100), changePct(80, 100), changePct(5, 0)]).toEqual([20, -20, null]);
+  });
+});
+
+describe('birthdays', () => {
+  it('counts days to the next birthday, rolling into next year and keeping 29 Feb on 28 Feb', () => {
+    expect(daysUntilBirthday(9, 10, '2026-10-09')).toBe(0);
+    expect(daysUntilBirthday(12, 10, '2026-10-09')).toBe(3);
+    expect(daysUntilBirthday(1, 10, '2026-10-09')).toBe(357);
+    expect(daysUntilBirthday(29, 2, '2027-02-20')).toBe(8);
   });
 });
