@@ -66,6 +66,25 @@ Deploy the staff function after changing it:
 npx supabase functions deploy manage-staff
 ```
 
+## Google Sheet of records
+
+The Google Sheet "NG Studio records" has tabs for Students, Daily log, Monthly
+log, Clients and Employees. Cell A1 of each tab is
+`=IMPORTDATA("https://<project>.supabase.co/functions/v1/sheet-feed?tab=<tab>&key=<key>")`,
+so the sheet refreshes itself from the database (the tabs are `students`,
+`daily`, `monthly`, `clients`, `employees`; the data comes from the
+`sheet_feed()` database function, which only the server can run).
+
+The key is a long random value kept as a Supabase secret, and in the sheet's
+formulas. It is not in this repository. Anyone who can open the sheet can see
+it, so share the sheet carefully. To lock old copies out, set a new key and
+update the five formulas:
+
+```bash
+npx supabase secrets set SHEET_FEED_KEY=<new 64-character random value>
+npx supabase functions deploy sheet-feed --no-verify-jwt
+```
+
 ## First-time setup of a Supabase project
 
 1. Create the project (region: South Asia, Mumbai).

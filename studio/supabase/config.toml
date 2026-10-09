@@ -8,3 +8,7 @@ enable_signup = false
 
 [functions.manage-staff]
 verify_jwt = true
+
+# Called by the Google Sheet (IMPORTDATA), which can't log in: it checks its own secret key instead.
+[functions.sheet-feed]
+verify_jwt = false

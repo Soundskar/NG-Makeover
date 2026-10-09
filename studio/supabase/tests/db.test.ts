@@ -589,3 +589,50 @@ describe('clients, bookings and reviews', () => {
     await expect(as('trainer', `select mark_review_asked('9812121212')`)).rejects.toThrow(/Not allowed/);
   });
 });
+
+describe('google sheet of records', () => {
+  /** Runs as the server, the way the sheet-feed Edge Function does. */
+  const feed = async (tab: string) => {
+    await db.exec('set role service_role');
+    try {
+      return (await db.query<{ f: unknown[][] }>(`select sheet_feed($1) as f`, [tab])).rows[0]!.f;
+    } finally {
+      await db.exec('reset role');
+    }
+  };
+
+  it('is for the server only, never for a login', async () => {
+    await expect(as('owner', `select sheet_feed('students')`)).rejects.toThrow(/permission denied/);
+    await expect(as('anon', `select sheet_feed('clients')`)).rejects.toThrow(/permission denied/);
+    await expect(feed('passwords')).rejects.toThrow(/Unknown tab/);
+  });
+
+  it('gives each tab a header and its rows', async () => {
+    const students = await feed('students');
+    expect(students[0]![0]).toBe('Student');
+    expect(students.length).toBeGreaterThan(1);
+
+    const daily = await feed('daily');
+    expect(daily[0]).toContain('Entered by');
+    const types = new Set(daily.slice(1).map((r) => r[2]));
+    expect(types).toContain('Salon');
+    expect(types).toContain('Fee');
+    expect(types).toContain('Udhaar collected');
+    expect(types).toContain('Booking advance');
+    // Phones keep a space so the sheet treats them as text.
+    expect(daily.slice(1).some((r) => typeof r[4] === 'string' && /^\d{5} \d{5}$/.test(r[4]))).toBe(true);
+
+    const monthly = await feed('monthly');
+    const month = (await su<{ m: string }>(`select to_char(today_ist(), 'Mon YYYY') as m`))[0]!.m;
+    expect(monthly[1]![0]).toBe(month);
+    expect(Number(monthly[1]![1])).toBeGreaterThan(0);
+
+    const clients = await feed('clients');
+    expect(clients[0]![0]).toBe('Phone');
+    expect(clients.length).toBeGreaterThan(1);
+
+    const employees = await feed('employees');
+    expect(employees.slice(1).map((r) => r[0])).toContain('Namita');
+    expect(JSON.stringify(employees)).not.toMatch(/pin|password/i);
+  });
+});
