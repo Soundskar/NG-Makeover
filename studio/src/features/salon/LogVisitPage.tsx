@@ -312,7 +312,7 @@ export default function LogVisitPage() {
                         <button key={g.id} role="tab" className="cat" aria-selected={g.id === current?.id}
                           onClick={() => { haptic(); setOpenCat(g.id); }}>
                           <span className="cat-icon">
-                            <ServiceIcon name={g.icon} size={26} />
+                            <ServiceIcon name={g.icon} size={23} />
                             {picked > 0 && <span className="cat-badge num" key={picked}>{picked}</span>}
                           </span>
                           <span className="cat-label">{g.label}</span>
@@ -370,7 +370,7 @@ export default function LogVisitPage() {
           <div className="list">
             {lines.map((l) => (
               <div key={l.key} className="list-item" style={{ alignItems: 'flex-start' }}>
-                <span className="svc-icon" style={{ width: 40, height: 40, margin: 0 }}><ServiceIcon name={iconFor(l.service.name_en)} size={22} /></span>
+                <span className="svc-icon" style={{ margin: 0 }}><ServiceIcon name={iconFor(l.service.name_en)} size={20} /></span>
                 <div className="grow stack" style={{ gap: 6 }}>
                   <span className="title">{nameOf(l.service, lang)}</span>
                   <button className="btn btn-soft btn-sm" style={{ alignSelf: 'flex-start' }} onClick={() => setStaffFor(l.key)}>
@@ -633,7 +633,7 @@ function ServiceGrid({ items, countOf, onTap }: {
         const [kind, part] = nameOf(s, lang).split(' · ');
         return (
           <button key={s.id} className={n ? 'svc-card picked' : 'svc-card'} aria-pressed={n > 0} onClick={() => onTap(s)}>
-            <span className="svc-icon"><ServiceIcon name={iconFor(s.name_en)} /></span>
+            <span className="svc-icon"><ServiceIcon name={iconFor(s.name_en)} size={21} /></span>
             {part && <span className="svc-kicker">{kind}</span>}
             <span className="svc-name">{part ?? kind}</span>
             <span className="svc-price num">{priceLabel(s, t('from'))}</span>

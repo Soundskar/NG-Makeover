@@ -1,13 +1,13 @@
 import { useQuery } from '@tanstack/react-query';
 import {
-  AlertTriangle, BellRing, Cake, CalendarCheck, CalendarClock, CalendarDays, ChevronRight, HandCoins, HardDriveDownload, IndianRupee, Lock, PhoneCall, Plus, UserPlus, Users, UserX,
+  AlertTriangle, BellRing, Cake, CalendarCheck, CalendarClock, ChevronRight, HandCoins, HardDriveDownload, Lock, PhoneCall, Plus, UserPlus, Users, UserX,
 } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { useMe } from '../../auth/auth';
-import { Count, Greeting, Money, Page } from '../../components/ui';
+import { Greeting, Money, Page } from '../../components/ui';
 import { useI18n } from '../../i18n/i18n';
-import { addDays, daysBetween, daysUntilBirthday, formatTime, monthStart, todayIST, weekdayOf } from '../../lib/dates';
+import { addDays, daysBetween, daysUntilBirthday, formatTime, todayIST, weekdayOf } from '../../lib/dates';
 import { formatINR, sum } from '../../lib/money';
 import { isScheduledOn } from '../../lib/schedule';
 import { must, supabase } from '../../lib/supabase';
@@ -38,14 +38,6 @@ export default function HomePage() {
   const toRemind = soon.filter((b) => b.day === tomorrow && b.status === 'booked' && !b.reminded_on);
   const birthdaysToday = (useClientList().data ?? []).filter((c) => c.birth_day && c.birth_month
     && daysUntilBirthday(c.birth_day, c.birth_month, today) === 0);
-  const collected = useQuery({
-    queryKey: ['home', 'collected', today],
-    queryFn: async () => {
-      const rows = must(await supabase.from('payments').select('amount, paid_on')
-        .gte('paid_on', monthStart(today)).eq('voided', false)) as { amount: number; paid_on: string }[];
-      return { month: sum(rows.map((r) => r.amount)), today: sum(rows.filter((r) => r.paid_on === today).map((r) => r.amount)) };
-    },
-  });
   const recentAttendance = useQuery({
     queryKey: ['home', 'attendance', today],
     queryFn: async () => must(await supabase.from('attendance').select('*').gte('day', addDays(today, -21))
@@ -75,18 +67,25 @@ export default function HomePage() {
   const backupDays = lastBackup ? daysBetween(lastBackup.slice(0, 10), today) : null;
   const hasData = (enrollments.data?.length ?? 0) > 0 || (salon?.count ?? 0) > 0;
 
+  // One list of what needs doing, most urgent first. Each row says what and how much.
   const alerts: { key: string; to: string; icon: ReactNode; text: string; tone: 'danger' | 'warning' | 'info' }[] = [];
   if (yVisits.data && summarizeDay(yVisits.data).count > 0 && yClosing.isSuccess && !yClosing.data) {
     alerts.push({ key: 'close', to: `/salon/close?day=${yesterday}`, icon: <Lock />, text: t('alert_not_closed'), tone: 'warning' });
   }
-  for (const e of absentTwice.slice(0, 3)) {
-    alerts.push({ key: `abs-${e.id}`, to: `/students/${e.student_id}`, icon: <UserX />, text: t('alert_absent', { name: e.students.full_name }), tone: 'warning' });
+  if (overdue.length) {
+    alerts.push({
+      key: 'overdue', to: '/fees', icon: <AlertTriangle />, tone: 'danger',
+      text: t('home_overdue_row', { n: overdue.length, amount: formatINR(sum(overdue.map((f) => f.overdue_amount))) }),
+    });
   }
-  if (absentTwice.length > 3) {
-    alerts.push({ key: 'abs-more', to: '/classes', icon: <UserX />, text: t('alert_absent_more', { n: absentTwice.length - 3 }), tone: 'warning' });
+  if (toRemind.length) {
+    alerts.push({ key: 'remind', to: `/bookings?d=${tomorrow}`, icon: <BellRing />, tone: 'info', text: t('bookings_remind_tomorrow', { n: toRemind.length }) });
   }
-  if (ending.length) {
-    alerts.push({ key: 'ending', to: '/fees?tab=ending', icon: <CalendarCheck />, text: t('alert_ending', { n: ending.length }), tone: 'warning' });
+  if (dueWeek.length) {
+    alerts.push({
+      key: 'week', to: '/fees?tab=week', icon: <CalendarClock />, tone: 'warning',
+      text: t('home_due_week_row', { n: dueWeek.length, amount: formatINR(sum(dueWeek.map((f) => f.next_due_amount ?? 0))) }),
+    });
   }
   // Udhaar that has waited more than a week deserves a reminder.
   const oldUdhaar = (udhaar.data ?? []).filter((u) => u.outstanding > 0 && u.visit_date <= addDays(today, -7));
@@ -96,13 +95,18 @@ export default function HomePage() {
       text: t('alert_udhaar_old', { amount: formatINR(sum(oldUdhaar.map((u) => u.outstanding))) }),
     });
   }
-  if (toRemind.length) {
-    alerts.push({ key: 'remind', to: `/bookings?d=${tomorrow}`, icon: <BellRing />, tone: 'info', text: t('bookings_remind_tomorrow', { n: toRemind.length }) });
+  for (const e of absentTwice.slice(0, 3)) {
+    alerts.push({ key: `abs-${e.id}`, to: `/students/${e.student_id}`, icon: <UserX />, text: t('alert_absent', { name: e.students.full_name }), tone: 'warning' });
+  }
+  if (absentTwice.length > 3) {
+    alerts.push({ key: 'abs-more', to: '/classes', icon: <UserX />, text: t('alert_absent_more', { n: absentTwice.length - 3 }), tone: 'warning' });
+  }
+  if (ending.length) {
+    alerts.push({ key: 'ending', to: '/fees?tab=ending', icon: <CalendarCheck />, text: t('alert_ending', { n: ending.length }), tone: 'info' });
   }
   for (const c of birthdaysToday.slice(0, 2)) {
     alerts.push({ key: `bday-${c.phone}`, to: '/clients', icon: <Cake />, tone: 'info', text: t('birthday_alert', { name: c.name ?? c.phone }) });
   }
-  // Not urgent, just a nudge: clients whose usual gap since their last visit has passed.
   if (dueCount > 0) {
     alerts.push({ key: 'callback', to: '/salon/callback', icon: <PhoneCall />, tone: 'info', text: t('callback_alert', { n: dueCount }) });
   }
@@ -112,20 +116,17 @@ export default function HomePage() {
       text: backupDays == null ? t('alert_backup_never') : t('alert_backup', { n: backupDays }),
     });
   }
+  const loaded = fees.isSuccess && visits.isSuccess;
+  const closedToday = holiday || weeklyOff;
 
   return (
     <Page>
       <Greeting name={me.display_name} />
 
-      {alerts.length > 0 && (
-        <section className="stack stagger" aria-label={t('home_attention')}>
-          {alerts.map((a) => (
-            <Link key={a.key} to={a.to} className={`notice notice-${a.tone}`}>
-              {a.icon}<span className="grow">{a.text}</span><ChevronRight />
-            </Link>
-          ))}
-        </section>
-      )}
+      <div className="home-actions">
+        <Link to="/salon/new" className="btn btn-primary"><Plus /> {t('nav_new_entry')}</Link>
+        <Link to="/students/new" className="btn btn-secondary"><UserPlus /> {t('adm_title')}</Link>
+      </div>
 
       <Link to="/salon" className="card-link hero stack" style={{ gap: 2 }}>
         <div className="row-between"><span className="stat-label">{t('home_salon_today')}</span><ChevronRight className="chev" /></div>
@@ -133,84 +134,56 @@ export default function HomePage() {
         <span className="stat-sub num">
           {salon
             ? [
-              `${t('cash')} ${formatINR(salon.cash)}`,
-              `${t('upi')} ${formatINR(salon.upi)}`,
+              t('salon_entries', { n: salon.count }),
+              salon.cash ? `${t('cash')} ${formatINR(salon.cash)}` : null,
+              salon.upi ? `${t('upi')} ${formatINR(salon.upi)}` : null,
               salon.card ? `${t('card')} ${formatINR(salon.card)}` : null,
               salon.udhaar ? `${t('udhaar')} ${formatINR(salon.udhaar)}` : null,
-              t('salon_entries', { n: salon.count }),
             ].filter(Boolean).join(' · ')
             : '…'}
         </span>
       </Link>
 
-      <Link to="/bookings" className="card-link stack" style={{ gap: 6 }}>
-        <div className="row-between">
-          <span className="stat-icon primary"><CalendarDays /></span>
-          <ChevronRight className="chev" />
-        </div>
-        <span className="stat-label">{t('home_bookings_today')}</span>
-        {todayBookings.length === 0 ? <span className="stat-sub">{t('bookings_none_today')}</span> : (
-          <span className="stack" style={{ gap: 4 }}>
-            {todayBookings.slice(0, 3).map((b) => (
-              <span key={b.id} className="row" style={{ gap: 10 }}>
-                <strong className="num" style={{ minWidth: 68 }}>{formatTime(b.start_time, lang)}</strong>
-                <span className="grow" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {b.client_name}{b.services_text ? <span className="muted"> · {b.services_text}</span> : null}
+      {(todayBookings.length > 0 || scheduled.length > 0 || closedToday) && (
+        <section className="stack" style={{ gap: 8 }}>
+          <h2 className="section-title">{t('home_today')}</h2>
+          <div className="list">
+            {todayBookings.map((b) => (
+              <Link key={b.id} to={`/bookings?d=${today}`} className="list-item">
+                <strong className="num home-time">{formatTime(b.start_time, lang)}</strong>
+                <span className="grow">
+                  <span className="title" style={{ display: 'block' }}>{b.client_name}</span>
+                  {b.services_text && <span className="sub">{b.services_text}</span>}
                 </span>
-              </span>
+                <ChevronRight className="chev" />
+              </Link>
             ))}
-            {todayBookings.length > 3 && <span className="muted small">{t('bookings_more', { n: todayBookings.length - 3 })}</span>}
-          </span>
-        )}
-      </Link>
-
-      <div className="stat-grid">
-        <Link to="/fees" className="card-link stack" style={{ gap: 2 }}>
-          <span className={`stat-icon ${overdue.length ? 'danger' : ''}`}><AlertTriangle /></span>
-          <span className="stat-label">{t('home_overdue')}</span>
-          <Count n={overdue.length} className={`stat-value ${overdue.length ? 'text-danger' : ''}`} />
-          <span className="stat-sub num">{formatINR(sum(overdue.map((f) => f.overdue_amount)))}</span>
-        </Link>
-        <Link to="/fees?tab=week" className="card-link stack" style={{ gap: 2 }}>
-          <span className={`stat-icon ${dueWeek.length ? 'warning' : ''}`}><CalendarClock /></span>
-          <span className="stat-label">{t('home_due_week')}</span>
-          <Count n={dueWeek.length} className="stat-value" />
-          <span className="stat-sub num">{formatINR(sum(dueWeek.map((f) => f.next_due_amount ?? 0)))}</span>
-        </Link>
-      </div>
-
-      <Link to="/fees" className="card-link stack" style={{ gap: 2 }}>
-        <div className="row-between">
-          <span className="stat-icon success"><IndianRupee /></span>
-          <ChevronRight className="chev" />
-        </div>
-        <span className="stat-label">{t('home_fees_month')}</span>
-        <Money n={collected.data?.month ?? 0} className="stat-value" animate />
-        <span className="stat-sub num">{t('home_fees_today', { amount: formatINR(collected.data?.today ?? 0) })}</span>
-      </Link>
-
-      <Link to="/classes" className="card-link stack" style={{ gap: 2 }}>
-        <div className="row-between">
-          <span className="stat-icon primary"><Users /></span>
-          <ChevronRight className="chev" />
-        </div>
-        <span className="stat-label">{t('home_classes_today')}</span>
-        <Count n={scheduled.length} className="stat-value" />
-        <span className="stat-sub">
-          {holiday || weeklyOff ? t('weekly_off_today')
-            : scheduled.length ? t('classes_marked', { done: marked, total: scheduled.length }) : t('classes_none')}
-        </span>
-        {scheduled.length > 0 && (
-          <div className={`bar ${marked === scheduled.length ? 'success' : ''}`} style={{ marginTop: 8 }}>
-            <span style={{ width: `${Math.round((marked / scheduled.length) * 100)}%` }} />
+            {scheduled.length > 0 && (
+              <Link to="/classes" className="list-item">
+                <span className="row-icon"><Users /></span>
+                <span className="grow">{t('home_classes_row', { done: marked, total: scheduled.length })}</span>
+                <ChevronRight className="chev" />
+              </Link>
+            )}
+            {closedToday && <div className="list-item muted">{t('weekly_off_today')}</div>}
           </div>
-        )}
-      </Link>
+        </section>
+      )}
 
-      <div className="stat-grid">
-        <Link to="/students/new" className="btn btn-soft quick"><UserPlus /> {t('adm_title')}</Link>
-        <Link to="/salon/new" className="btn btn-soft quick"><Plus /> {t('nav_new_entry')}</Link>
-      </div>
+      <section className="stack" style={{ gap: 8 }}>
+        <h2 className="section-title">{t('home_attention')}</h2>
+        {alerts.length > 0 ? (
+          <div className="list">
+            {alerts.map((a) => (
+              <Link key={a.key} to={a.to} className="list-item">
+                <span className={`row-icon ${a.tone}`}>{a.icon}</span>
+                <span className="grow">{a.text}</span>
+                <ChevronRight className="chev" />
+              </Link>
+            ))}
+          </div>
+        ) : loaded && <p className="muted" style={{ padding: '0 2px' }}>{t('home_all_clear')}</p>}
+      </section>
 
       {(fees.error || visits.error) && (
         <div className="notice notice-danger"><AlertTriangle /><span>{t('err_generic')}</span></div>
