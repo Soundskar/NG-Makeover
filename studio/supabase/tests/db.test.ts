@@ -464,7 +464,7 @@ describe('reports and call-backs', () => {
       paid_upi: 2000, paid_udhaar: 700, lines: [{ service_id: facial, price: 3000, staff_id: U.staff2 }] });
 
     const [{ r }] = await as<{ r: Report }>('owner', `select studio_report('2026-02-10', '2026-02-12') as r`);
-    expect(r.salon).toEqual({ billed: 2750, visits: 2, discount: 300, cash: 50, upi: 2000, card: 0, udhaar: 700, clients: 2, no_phone: 0 });
+    expect(r.salon).toEqual({ billed: 2750, visits: 2, discount: 300, cash: 50, upi: 2000, card: 0, udhaar: 700, advance: 0, clients: 2, no_phone: 0 });
     expect(r.by_day.map((d) => [d.day, d.salon, d.visits])).toEqual([['2026-02-10', 50, 1], ['2026-02-11', 2700, 1], ['2026-02-12', 0, 0]]);
     expect(r.top_services[0]).toEqual({ name: 'Hydra facial', count: 1, amount: 2700 });
     expect(r.by_staff).toEqual([{ staff_id: U.staff2, count: 1, amount: 2700 }, { staff_id: U.staff, count: 1, amount: 50 }]);
@@ -494,5 +494,85 @@ describe('reports and call-backs', () => {
     expect(await due()).toEqual([]);
     await expect(as('staff', `select * from clients_due()`)).rejects.toThrow(/Not allowed/);
     await expect(as('staff', `insert into client_followups (client_phone, kind) values ('1', 'stop')`)).rejects.toThrow(/row-level security/);
+  });
+});
+
+describe('clients, bookings and reviews', () => {
+  const log = (who: Who, p: Record<string, unknown>) =>
+    as<{ id: string }>(who, `select log_visit($1::jsonb) as id`, [JSON.stringify(p)]);
+  const dayFromToday = async (n: number) => (await su<{ d: string }>(`select (today_ist() + $1::int)::text as d`, [n]))[0]!.d;
+  const book = async (who: Who, phone: string, name: string, day: string, services: string[], text: string) =>
+    (await as<{ id: string }>(who, `insert into appointments (client_phone, client_name, day, start_time, service_ids, services_text)
+       values ($1, $2, $3, '11:00', $4::uuid[], $5) returning id`, [phone, name, day, `{${services.join(',')}}`, text]))[0]!.id;
+
+  it('keeps one card per client; staff see notes and history but never money, and not the list', async () => {
+    // Rekha was logged twice (₹50 each) in the reports tests.
+    expect(await su(`select name from clients where phone = '9844444444'`)).toEqual([{ name: 'Rekha' }]);
+    await as('owner', `update clients set notes = 'Sensitive skin', birth_day = 12, birth_month = 3 where phone = '9844444444'`);
+    const [{ c }] = await as<{ c: Record<string, unknown> }>('staff', `select client_card('9844444444') as c`);
+    expect(c).toMatchObject({ name: 'Rekha', notes: 'Sensitive skin', visits: 2, birth_day: 12, birth_month: 3 });
+    expect(c).not.toHaveProperty('spent');
+    expect(await as('staff', `select * from clients`)).toHaveLength(0);
+    await expect(as('staff', `select * from client_list()`)).rejects.toThrow(/Not allowed/);
+    expect(await as('owner', `select visit_count, spent::int from client_list() where phone = '9844444444'`))
+      .toEqual([{ visit_count: 2, spent: 100 }]);
+    expect((await as<{ c: unknown }>('trainer', `select client_card('9844444444') as c`))[0]!.c).toBeNull();
+  });
+
+  it('books a client, takes an advance, and takes it off the bill', async () => {
+    const facial = await serviceId('Hydra facial');
+    const wax = await serviceId('Rica wax · Full arms');
+    const appt = await book('staff', '9899999999', 'Bride To Be', await dayFromToday(1), [facial], 'Hydra facial');
+    // Booking her made her a client.
+    expect(await su(`select name from clients where phone = '9899999999'`)).toEqual([{ name: 'Bride To Be' }]);
+    await as('staff', `select add_advance($1, 1000, 'upi')`, [appt]);
+
+    const bill = (advance: number, cash: number) => log('staff', {
+      appointment_id: appt, paid_advance: advance, paid_cash: cash, client_name: 'Bride To Be', client_phone: '9899999999',
+      lines: [{ service_id: facial, price: 3000, staff_id: U.staff }],
+    });
+    await expect(bill(1500, 1500)).rejects.toThrow(/Only 1000/);
+    const [{ id: visit }] = await bill(1000, 2000);
+    expect(await su(`select status, visit_id from appointments where id = $1`, [appt])).toEqual([{ status: 'done', visit_id: visit }]);
+    await expect(bill(1000, 2000)).rejects.toThrow(/already closed/);
+
+    // The advance is now part of a bill: it can't be cancelled on its own.
+    const [adv] = await su<{ id: string }>(`select id from appointment_advances where appointment_id = $1`, [appt]);
+    await expect(as('owner', `select void_advance($1, 'x')`, [adv!.id])).rejects.toThrow(/used in the bill/);
+    // Cancelling the entry reopens the booking, advance and all.
+    await as('staff', `select void_visit($1, 'Wrong client')`, [visit]);
+    expect(await su(`select status, visit_id from appointments where id = $1`, [appt])).toEqual([{ status: 'booked', visit_id: null }]);
+
+    await expect(log('staff', { paid_advance: 100, paid_cash: 250, lines: [{ service_id: wax, price: 350, staff_id: U.staff }] }))
+      .rejects.toThrow(/must come from a booking/);
+    await expect(as('staff', `insert into appointment_advances (appointment_id, amount, mode) values ($1, 5, 'cash')`, [appt]))
+      .rejects.toThrow(/permission denied/);
+    expect(await as('trainer', `select id from appointments`)).toHaveLength(0);
+  });
+
+  it('counts advances taken in cash in the day close, and in reports', async () => {
+    const d = await today();
+    const close = async () =>
+      (await as<{ expected_cash: number }>('owner', `select expected_cash from close_day($1::date, 0, true, null)`, [d]))[0]!.expected_cash;
+    const before = await close();
+    const appt = await book('owner', '9898989898', 'Advance Ji', await dayFromToday(3), [], 'Engagement makeup');
+    await as('owner', `select add_advance($1, 700, 'cash')`, [appt]);
+    expect(await close()).toBe(before + 700);
+    const [{ r }] = await as<{ r: { advances: number; bookings: { total: number } } }>('owner', `select studio_report($1::date, $1::date) as r`, [d]);
+    expect(r.advances).toBe(1700);
+  });
+
+  it('call-backs skip a client who already has a booking; review requests are remembered', async () => {
+    const thread = await serviceId('Threading (eyebrows, forehead, upper lip, chin)');
+    await log('owner', { visit_date: await dayFromToday(-30), client_name: 'Booked Didi', client_phone: '9812121212',
+      paid_cash: 50, lines: [{ service_id: thread, price: 50, staff_id: U.staff }] });
+    const isDue = async () => (await as('owner', `select 1 from clients_due() where client_phone = '9812121212'`)).length === 1;
+    expect(await isDue()).toBe(true);
+    await book('staff', '9812121212', 'Booked Didi', await dayFromToday(2), [thread], 'Threading');
+    expect(await isDue()).toBe(false);
+
+    await as('staff', `select mark_review_asked('9812121212')`);
+    expect(await su(`select review_asked_on = today_ist() as ok from clients where phone = '9812121212'`)).toEqual([{ ok: true }]);
+    await expect(as('trainer', `select mark_review_asked('9812121212')`)).rejects.toThrow(/Not allowed/);
   });
 });
