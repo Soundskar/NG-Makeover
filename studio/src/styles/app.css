@@ -572,20 +572,6 @@ a.notice:active { transform: scale(0.985); filter: brightness(0.97); }
 }
 @keyframes drop-in { from { transform: translateY(-100%); } }
 
-/* ---------- test mode bar (dev server only) ---------- */
-.dev-bar {
-  display: flex; align-items: center; gap: 6px;
-  padding: 6px 12px; background: #1C1917; color: #FDE68A;
-  font-size: 0.8125rem;
-}
-.dev-bar strong { margin-right: auto; letter-spacing: 0.08em; }
-.dev-bar button {
-  min-height: 32px; padding: 0 12px; border-radius: 8px;
-  border: 1px solid #57534E; background: none; color: #F5F5F4;
-  font-weight: 700; text-transform: capitalize;
-}
-.dev-bar button[aria-pressed="true"] { background: #FDE68A; color: #1C1917; border-color: #FDE68A; }
-
 /* ---------- toast ---------- */
 .toast-wrap {
   position: fixed; left: 0; right: 0; z-index: 50;

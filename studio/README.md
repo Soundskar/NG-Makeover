@@ -28,12 +28,17 @@ Needs Node.js 20 or later.
 npm install
 ```
 
-Copy `.env.example` to `.env.local` and fill in the dev project's URL and
+Copy `.env.example` to `.env.local` and fill in the project's URL and
 publishable key (Supabase → Project Settings → API). Then:
 
 ```bash
 npm run dev
 ```
+
+There is only one Supabase project, so the dev server works on the **live
+data** with the real login screen. Anything saved there is real: money,
+receipts and all. The old test logins (devowner, devtrainer, devstaff) were
+deleted on 9 Oct 2026, along with the test data, before Mom started.
 
 ## Tests
 

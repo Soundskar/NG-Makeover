@@ -34,7 +34,8 @@ export default defineConfig({
       },
     }),
   ],
-  server: { port: 5173, strictPort: true },
+  // The Claude preview passes a free port in PORT when 5173 is already taken.
+  server: { port: Number(process.env.PORT) || 5173, strictPort: true },
   test: {
     include: ['src/**/*.test.ts', 'supabase/tests/**/*.test.ts'],
   },

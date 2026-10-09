@@ -1,10 +1,8 @@
-import { lazy, Suspense, useEffect } from 'react';
+import { lazy, Suspense } from 'react';
 import { Navigate, Outlet, Route, Routes } from 'react-router-dom';
 import { useAuth } from './auth/auth';
-import { devMode, devPaused, devRole, devSignIn } from './auth/devMode';
 import { BootErrorPage, InactivePage, LoginPage, NotConfiguredPage } from './auth/LoginPage';
 import { BottomNav } from './components/BottomNav';
-import { DevBar } from './components/DevBar';
 import { Splash } from './components/ErrorBoundary';
 import { OfflineBanner, PullToRefresh, Skeleton } from './components/ui';
 import { configured } from './lib/supabase';
@@ -42,7 +40,6 @@ const HistoryPage = lazy(() => import('./features/settings/HistoryPage'));
 function Shell() {
   return (
     <div className="shell">
-      {devMode && !devPaused() && <DevBar />}
       <OfflineBanner />
       <PullToRefresh />
       <Suspense fallback={<div className="page"><Skeleton variant="cards" rows={3} /></div>}>
@@ -63,15 +60,10 @@ function homeFor(p: Profile): string {
 export function App() {
   const { status, profile } = useAuth();
 
-  // Test mode: no login screen, sign straight in as the last-used test account.
-  useEffect(() => {
-    if (devMode && !devPaused() && status === 'signed_out') void devSignIn(devRole());
-  }, [status]);
-
   if (!configured) return <NotConfiguredPage />;
   if (status === 'loading') return <Splash />;
   if (status === 'error') return <BootErrorPage />;
-  if (status === 'signed_out') return devMode && !devPaused() ? <Splash /> : <LoginPage />;
+  if (status === 'signed_out') return <LoginPage />;
   if (status === 'inactive' || !profile) return <InactivePage />;
 
   const owner = profile.is_owner;
