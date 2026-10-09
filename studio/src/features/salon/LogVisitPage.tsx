@@ -274,6 +274,10 @@ export default function LogVisitPage() {
     <div className="notice notice-warning">{t('log_for_date', { date: formatDate(date, lang) })}</div>
   );
   const countOf = (id: string) => lines.filter((l) => l.service.id === id).length;
+  // Shown after saving, on whichever step the screen is back on.
+  const reviewPrompt = reviewFor && (
+    <ReviewPrompt r={reviewFor} onDone={() => { const to = reviewFor.then; setReviewFor(null); if (to) navigate(to, { replace: true }); }} />
+  );
 
   // ---------- step 1: pick services ----------
   if (step === 'pick') {
@@ -362,6 +366,7 @@ export default function LogVisitPage() {
             setPriceFor(null);
           }}
         />
+        {reviewPrompt}
       </>
     );
   }
@@ -574,7 +579,7 @@ export default function LogVisitPage() {
         <div className="sticky-actions stack" style={{ gap: 8 }}>
           {blocker && lines.length > 0 && <p className="save-hint">{blocker}</p>}
           <button className="btn btn-primary btn-lg btn-block" disabled={!canSave} aria-busy={save.isPending} onClick={() => save.mutate()}>
-            <Check /> {t('log_save', { amount: formatINR(total) })}
+            <Check /> {advanceUsed > 0 ? t('log_save_collect', { amount: formatINR(toCollect) }) : t('log_save', { amount: formatINR(total) })}
           </button>
         </div>
       </Page>
@@ -611,7 +616,7 @@ export default function LogVisitPage() {
         <CollectSheet phone={tenDigits} name={client.trim() || owedRows[0]?.client_name || null} owed={owed}
           onClose={() => setCollectOpen(false)} />
       )}
-      {reviewFor && <ReviewPrompt r={reviewFor} onDone={() => { const to = reviewFor.then; setReviewFor(null); if (to) navigate(to, { replace: true }); }} />}
+      {reviewPrompt}
     </>
   );
 }

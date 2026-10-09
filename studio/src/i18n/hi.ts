@@ -726,4 +726,5 @@ export const hi: Record<TKey, string> = {
   studio_review_step2: '"Ask for reviews" दबाएँ (Google Maps में "Get more reviews")।',
   studio_review_step3: 'लिंक कॉपी करके ऊपर डालें।',
   studio_review_open: 'Google Business Profile खोलें',
+  log_save_collect: 'सेव करें · {amount} लें',
 };

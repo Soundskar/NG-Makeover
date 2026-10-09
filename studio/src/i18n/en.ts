@@ -724,6 +724,7 @@ export const en = {
   studio_review_step2: 'Tap "Ask for reviews" (or "Get more reviews" in Google Maps).',
   studio_review_step3: 'Copy the link and paste it above.',
   studio_review_open: 'Open Google Business Profile',
+  log_save_collect: 'Save · collect {amount}',
 } as const;
 
 export type TKey = keyof typeof en;
