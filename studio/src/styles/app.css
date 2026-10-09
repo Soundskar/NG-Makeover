@@ -1,87 +1,107 @@
 /* ============================================================
    NG Studio. Built for one main user: Namita, on her phone.
-   Rules: big readable text, one action colour (rose), status colours
+   Rules: big readable text, one action colour (rouge), status colours
    only for paid / due / overdue (always with a word, never colour alone),
    tap targets of 52px or more, one task per screen.
+
+   Look: the same family as the studio's website, made softer for every day.
+   Colours come from a makeup kit (powder, petal, rouge, kohl-velvet, a touch
+   of gold); the one signature is Lucknow chikankari: the main cards are
+   white-embroidered muslin with a running-stitch border.
    Motion is short and quiet: it confirms a tap or shows where something
    went, and switches off for people who ask their phone for less motion.
    ============================================================ */
 
 :root {
-  --bg: #F6F5F3;
-  --surface: #FFFFFF;
-  --surface-2: #F0EEEB;
-  --text: #1C1917;
-  --text-2: #57534E;
-  --border: #E2DED9;
+  /* powder, card, petal, line */
+  --bg: #FBF3F1;
+  --surface: #FFFDFC;
+  --surface-2: #F7E9E8;
+  --border: #EEDCDA;
+  /* velvet ink instead of black: warm, still high contrast */
+  --text: #3A1F27;
+  --text-2: #7A5E65;
 
-  --primary: #A3195B;
-  --primary-press: #85134A;
-  --primary-soft: #FBE7F0;
+  /* rouge */
+  --primary: #B02A5B;
+  --primary-press: #8E1F49;
+  --primary-soft: #F7E1E5;
   --on-primary: #FFFFFF;
-  --hero-from: #A3195B;
-  --hero-to: #6D1340;
+  --hero-from: #B8336A;
+  --hero-to: #7E1E47;
+  --hero-shadow: 0 10px 26px rgb(126 30 71 / 0.28);
+  --gold: #C9A35E;
 
-  --success: #15803D;
-  --success-soft: #DCFCE7;
-  --warning: #A16207;
-  --warning-soft: #FEF3C7;
-  --danger: #B91C1C;
-  --danger-soft: #FEE2E2;
+  /* sage, marigold, sindoor */
+  --success: #286B4A;
+  --success-soft: #E1F1E6;
+  --warning: #93560A;
+  --warning-soft: #FCEFD6;
+  --danger: #A3243A;
+  --danger-soft: #FBE3E4;
 
   /* Avatar tints: the same name always gets the same one. */
-  --tint-0-bg: #FBE7F0; --tint-0-fg: #A3195B;
-  --tint-1-bg: #EDE9FE; --tint-1-fg: #6D28D9;
-  --tint-2-bg: #CCFBF1; --tint-2-fg: #0F766E;
-  --tint-3-bg: #FEF3C7; --tint-3-fg: #A16207;
-  --tint-4-bg: #DBEAFE; --tint-4-fg: #1D4ED8;
-  --tint-5-bg: #DCFCE7; --tint-5-fg: #15803D;
+  --tint-0-bg: #F7E1E5; --tint-0-fg: #A3264F;
+  --tint-1-bg: #ECE3F4; --tint-1-fg: #6B3E8E;
+  --tint-2-bg: #E1EFE6; --tint-2-fg: #2F6E4E;
+  --tint-3-bg: #FCEBCF; --tint-3-fg: #95580A;
+  --tint-4-bg: #FBE1D5; --tint-4-fg: #9A4524;
+  --tint-5-bg: #DDEDEF; --tint-5-fg: #2C6670;
 
-  --font: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", "Noto Sans Devanagari", "Nirmala UI", sans-serif;
-  --radius: 16px;
-  --radius-sm: 10px;
+  --font: "Mukta", "Noto Sans Devanagari", "Nirmala UI", system-ui, sans-serif;
+  --display: "Baloo 2 Variable", "Mukta", "Nirmala UI", system-ui, sans-serif;
+  --radius: 20px;
+  --radius-sm: 14px;
   --tap: 52px;
-  --shadow: 0 1px 2px rgb(28 25 23 / 0.05), 0 2px 10px rgb(28 25 23 / 0.04);
-  --shadow-lg: 0 10px 30px rgb(28 25 23 / 0.16);
+  --shadow: 0 1px 2px rgb(122 30 66 / 0.05), 0 4px 16px rgb(122 30 66 / 0.06);
+  --shadow-lg: 0 14px 34px rgb(90 20 50 / 0.18);
   --nav-h: 68px;
   --safe-b: env(safe-area-inset-bottom, 0px);
   --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
 
+  /* Chikankari buti from the website, in white thread. */
+  --chikan: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='96' height='96' viewBox='0 0 96 96'%3E%3Cg fill='none' stroke='%23FFFFFF' stroke-width='1.3' stroke-linecap='round'%3E%3Cpath d='M24 24c-3-6-2-10 0-12 2 2 3 6 0 12z'/%3E%3Cpath d='M24 24c-3-6-2-10 0-12 2 2 3 6 0 12z' transform='rotate(72 24 24)'/%3E%3Cpath d='M24 24c-3-6-2-10 0-12 2 2 3 6 0 12z' transform='rotate(144 24 24)'/%3E%3Cpath d='M24 24c-3-6-2-10 0-12 2 2 3 6 0 12z' transform='rotate(216 24 24)'/%3E%3Cpath d='M24 24c-3-6-2-10 0-12 2 2 3 6 0 12z' transform='rotate(288 24 24)'/%3E%3Ccircle cx='24' cy='24' r='1.6'/%3E%3Cpath d='M26 36c4 8 12 14 22 16' stroke-dasharray='0.1 3.2' stroke-width='1.8'/%3E%3Cpath d='M34 44c3-5 8-6 11-4-3 4-8 6-11 4z'/%3E%3Cpath d='M70 68c-2-4-1.5-7 0-8.5 1.5 1.5 2 4.5 0 8.5z'/%3E%3Cpath d='M70 68c-2-4-1.5-7 0-8.5 1.5 1.5 2 4.5 0 8.5z' transform='rotate(72 70 68)'/%3E%3Cpath d='M70 68c-2-4-1.5-7 0-8.5 1.5 1.5 2 4.5 0 8.5z' transform='rotate(144 70 68)'/%3E%3Cpath d='M70 68c-2-4-1.5-7 0-8.5 1.5 1.5 2 4.5 0 8.5z' transform='rotate(216 70 68)'/%3E%3Cpath d='M70 68c-2-4-1.5-7 0-8.5 1.5 1.5 2 4.5 0 8.5z' transform='rotate(288 70 68)'/%3E%3Ccircle cx='70' cy='68' r='1.2'/%3E%3C/g%3E%3C/svg%3E");
+  /* The website's arch (mehrab) frame. */
+  --arch: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 400'%3E%3Cpath d='M0 400V58A15 15 0 0 1 5 35A12.5 12.5 0 0 1 16 18A12 12 0 0 1 32 8A11.5 11.5 0 0 1 50 3A11.5 11.5 0 0 1 68 8A12 12 0 0 1 84 18A12.5 12.5 0 0 1 95 35A15 15 0 0 1 100 58V400Z'/%3E%3C/svg%3E");
+
   color-scheme: light;
 }
 
+/* Evening: velvet instead of black. */
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #121110;
-    --surface: #1E1C1B;
-    --surface-2: #2A2725;
-    --text: #F5F5F4;
-    --text-2: #B5AFAA;
-    --border: #3A3633;
+    --bg: #1E0F14;
+    --surface: #2A161D;
+    --surface-2: #3A2029;
+    --border: #4A2C36;
+    --text: #F6E8E6;
+    --text-2: #CDB4AE;
 
-    --primary: #F472B6;
-    --primary-press: #EC4899;
-    --primary-soft: #3B1427;
-    --on-primary: #1C1917;
-    --hero-from: #5C1035;
-    --hero-to: #2E0A1C;
+    --primary: #F38BB0;
+    --primary-press: #F7A8C4;
+    --primary-soft: #4A1E30;
+    --on-primary: #2A0E18;
+    --hero-from: #7A2148;
+    --hero-to: #45122A;
+    --hero-shadow: 0 10px 26px rgb(0 0 0 / 0.45);
+    --gold: #E3CB98;
 
-    --success: #4ADE80;
-    --success-soft: #14321F;
-    --warning: #FBBF24;
-    --warning-soft: #3A2A0A;
-    --danger: #F87171;
-    --danger-soft: #3B1414;
+    --success: #8FD3A8;
+    --success-soft: #1D3528;
+    --warning: #F2C268;
+    --warning-soft: #3D2A10;
+    --danger: #F59AA2;
+    --danger-soft: #451A22;
 
-    --tint-0-bg: #3B1427; --tint-0-fg: #F9A8D4;
-    --tint-1-bg: #2E1F55; --tint-1-fg: #C4B5FD;
-    --tint-2-bg: #0F332F; --tint-2-fg: #5EEAD4;
-    --tint-3-bg: #3A2A0A; --tint-3-fg: #FCD34D;
-    --tint-4-bg: #172554; --tint-4-fg: #93C5FD;
-    --tint-5-bg: #14321F; --tint-5-fg: #86EFAC;
+    --tint-0-bg: #4A1E30; --tint-0-fg: #F7B5CB;
+    --tint-1-bg: #3A2752; --tint-1-fg: #D2B9F0;
+    --tint-2-bg: #1D3528; --tint-2-fg: #A6DDB9;
+    --tint-3-bg: #3D2A10; --tint-3-fg: #F2C268;
+    --tint-4-bg: #45251A; --tint-4-fg: #F3B395;
+    --tint-5-bg: #183337; --tint-5-fg: #9ED3DA;
 
     --shadow: none;
-    --shadow-lg: 0 10px 30px rgb(0 0 0 / 0.5);
+    --shadow-lg: 0 14px 34px rgb(0 0 0 / 0.5);
     color-scheme: dark;
   }
 }
@@ -136,8 +156,9 @@ a { color: var(--primary); }
 }
 .topbar h1 {
   flex: 1; min-width: 0;
-  font-size: 1.25rem; font-weight: 750; line-height: 1.25; letter-spacing: -0.01em;
+  font-family: var(--display); font-size: 1.375rem; font-weight: 650; line-height: 1.2;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  padding-top: 2px; /* Baloo sits a little high in its line box */
 }
 .topbar .icon-btn { margin-left: -8px; }
 .topbar .icon-btn:last-child { margin-left: 0; margin-right: -4px; }
@@ -155,19 +176,27 @@ a { color: var(--primary); }
 .grow { flex: 1; min-width: 0; }
 
 .section-title {
-  font-size: 0.8125rem; font-weight: 750; letter-spacing: 0.06em;
-  text-transform: uppercase; color: var(--text-2);
+  font-family: var(--display); font-size: 1.0625rem; font-weight: 650; line-height: 1.3;
+  color: var(--text-2);
   margin: 8px 4px 0;
 }
+
+/* The greeting at the top of Home and of a staff member's first screen. */
+.greeting { font-family: var(--display); font-size: 1.875rem; font-weight: 700; line-height: 1.15; }
+.greeting-sub { color: var(--text-2); }
 
 /* ---------- splash ---------- */
 .splash {
   min-height: 100dvh; display: grid; place-content: center; justify-items: center; gap: 22px;
 }
-.splash img, .brand-mark { border-radius: 18px; box-shadow: var(--shadow-lg); }
-.splash img { animation: boot-pulse 1.4s ease-in-out infinite; }
-.brand-mark { display: block; margin: 0 auto 10px; animation: pop-in 0.4s var(--ease); }
-@keyframes boot-pulse { 50% { transform: scale(0.94); opacity: 0.8; } }
+.splash svg { animation: boot-pulse 1.6s ease-in-out infinite; filter: drop-shadow(0 12px 22px rgb(126 30 71 / 0.25)); }
+.brand-mark {
+  display: block; margin: 0 auto 6px;
+  filter: drop-shadow(0 12px 22px rgb(126 30 71 / 0.22));
+  animation: rise-in 0.6s var(--ease);
+}
+@keyframes boot-pulse { 50% { transform: scale(0.96); opacity: 0.85; } }
+@keyframes rise-in { from { opacity: 0; transform: translateY(14px) scale(0.96); } }
 .splash-bar { width: 96px; height: 4px; border-radius: 2px; background: var(--surface-2); overflow: hidden; }
 .splash-bar span {
   display: block; width: 40%; height: 100%; border-radius: 2px; background: var(--primary);
@@ -246,18 +275,31 @@ a { color: var(--primary); }
 }
 .card-link:active { background: var(--surface-2); transform: scale(0.985); }
 
-/* The one big number on Home: today's salon total. */
+/* The signature: the big number on each main screen sits on rouge muslin
+   with white chikankari buti and a running-stitch border, like a Lucknowi kurta. */
 .hero {
+  position: relative; isolation: isolate; overflow: hidden;
+  padding: 20px 22px;
   color: #fff; border: 0;
   background: linear-gradient(135deg, var(--hero-from), var(--hero-to));
-  box-shadow: 0 8px 24px rgb(163 25 91 / 0.25);
+  box-shadow: var(--hero-shadow);
+}
+.hero::before {
+  content: ''; position: absolute; inset: 0; z-index: -1;
+  background: var(--chikan) 30px -8px / 96px 96px;
+  opacity: 0.17;
+}
+.hero::after {
+  content: ''; position: absolute; inset: 7px; pointer-events: none;
+  border: 1.5px dashed rgb(255 255 255 / 0.38); border-radius: calc(var(--radius) - 7px);
 }
 .hero:active { background: linear-gradient(135deg, var(--hero-from), var(--hero-to)); }
-.hero .stat-label, .hero .stat-sub, .hero .chev { color: rgb(255 255 255 / 0.85); }
+.hero .stat-label, .hero .stat-sub, .hero .chev { color: rgb(255 255 255 / 0.88); }
+.hero .text-success { color: #D9F5E2; }
 
 .stat-label, .stat-value, .stat-sub { display: block; }
 .stat-label { font-size: 0.9375rem; color: var(--text-2); font-weight: 600; }
-.stat-value { font-size: 2rem; font-weight: 800; line-height: 1.15; letter-spacing: -0.02em; }
+.stat-value { font-family: var(--display); font-size: 2.125rem; font-weight: 700; line-height: 1.1; }
 .stat-sub { font-size: 0.9375rem; color: var(--text-2); }
 .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .stat-icon {
@@ -304,7 +346,7 @@ a:active > .chev, button:active > .chev { transform: translateX(3px); }
   flex-shrink: 0; display: grid; place-items: center;
   width: 44px; height: 44px; border-radius: 50%;
   background: var(--primary-soft); color: var(--primary);
-  font-weight: 750; font-size: 1.0625rem;
+  font-family: var(--display); font-weight: 700; font-size: 1.0625rem; padding-top: 2px;
 }
 .avatar[data-tint="0"] { background: var(--tint-0-bg); color: var(--tint-0-fg); }
 .avatar[data-tint="1"] { background: var(--tint-1-bg); color: var(--tint-1-fg); }
@@ -318,9 +360,9 @@ a:active > .chev, button:active > .chev { transform: translateX(3px); }
   --spin: var(--text);
   position: relative;
   display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-  min-height: var(--tap); padding: 0 20px;
-  border-radius: 12px; border: 1px solid transparent;
-  font-size: 1.0625rem; font-weight: 700; line-height: 1.2;
+  min-height: var(--tap); padding: 0 22px;
+  border-radius: 999px; border: 1px solid transparent;
+  font-family: var(--display); font-size: 1.0625rem; font-weight: 650; line-height: 1.2;
   text-decoration: none; white-space: nowrap;
   transition: background-color 0.15s, transform 0.12s var(--ease), opacity 0.15s, box-shadow 0.15s;
 }
@@ -328,7 +370,7 @@ a:active > .chev, button:active > .chev { transform: translateX(3px); }
 .btn:disabled { opacity: 0.5; pointer-events: none; }
 .btn svg { width: 22px; height: 22px; flex-shrink: 0; }
 .btn-block { display: flex; width: 100%; }
-.btn-primary { --spin: var(--on-primary); background: var(--primary); color: var(--on-primary); box-shadow: 0 4px 14px rgb(163 25 91 / 0.22); }
+.btn-primary { --spin: var(--on-primary); background: var(--primary); color: var(--on-primary); box-shadow: 0 6px 16px rgb(176 42 91 / 0.25); }
 .btn-primary:active { background: var(--primary-press); box-shadow: none; }
 .btn-secondary { background: var(--surface); color: var(--text); border-color: var(--border); }
 .btn-secondary:active { background: var(--surface-2); }
@@ -338,10 +380,17 @@ a:active > .chev, button:active > .chev { transform: translateX(3px); }
 .btn-whatsapp:active { background: #0E7266; }
 .btn-link {
   background: none; color: var(--primary); padding: 0;
-  min-height: 44px; font-size: 1rem; text-decoration: underline; text-underline-offset: 3px;
+  min-height: 44px; font-family: var(--font); font-size: 1rem; font-weight: 600;
+  text-decoration: underline; text-decoration-thickness: 1.5px; text-underline-offset: 4px;
 }
-.btn-lg { min-height: 60px; font-size: 1.1875rem; border-radius: 14px; }
-.btn-sm { min-height: 40px; padding: 0 14px; font-size: 0.9375rem; border-radius: 10px; }
+.btn-lg { min-height: 60px; font-size: 1.1875rem; }
+/* Shortcut tiles: icon above a label that may wrap (pills only suit one line). */
+.quick {
+  flex-direction: column; gap: 6px; min-height: 92px; padding: 12px;
+  border-radius: var(--radius); white-space: normal; text-align: center; line-height: 1.2;
+}
+.quick svg { width: 26px; height: 26px; }
+.btn-sm { min-height: 40px; padding: 0 16px; font-size: 0.9375rem; }
 .btn-sm svg { width: 18px; height: 18px; }
 
 /* Saving: the label fades and a small spinner shows, so a second tap isn't needed. */
@@ -382,7 +431,7 @@ a:active > .chev, button:active > .chev { transform: translateX(3px); }
   width: 100%; min-height: var(--tap);
   padding: 12px 14px;
   background: var(--surface); color: var(--text);
-  border: 1.5px solid var(--border); border-radius: 12px;
+  border: 1.5px solid var(--border); border-radius: var(--radius-sm);
   font-size: 1.0625rem;
   transition: border-color 0.15s, box-shadow 0.15s;
 }
@@ -447,7 +496,7 @@ a:active > .chev, button:active > .chev { transform: translateX(3px); }
 .choice {
   min-height: var(--tap); padding: 8px;
   display: flex; align-items: center; justify-content: center; gap: 6px;
-  background: var(--surface); border: 1.5px solid var(--border); border-radius: 12px;
+  background: var(--surface); border: 1.5px solid var(--border); border-radius: 16px;
   font-weight: 700;
   transition: background-color 0.18s, border-color 0.18s, color 0.18s, transform 0.12s var(--ease);
 }
@@ -471,7 +520,7 @@ a:active > .chev, button:active > .chev { transform: translateX(3px); }
   transition: background-color 0.18s, border-color 0.18s, color 0.18s, transform 0.12s var(--ease);
 }
 .chip:active { transform: scale(0.95); }
-.chip[aria-pressed="true"] { background: var(--text); border-color: var(--text); color: var(--bg); }
+.chip[aria-pressed="true"] { background: var(--primary); border-color: var(--primary); color: var(--on-primary); }
 
 /* ---------- status badges (always text + colour) ---------- */
 .badge {
@@ -538,7 +587,7 @@ a.notice:active { transform: scale(0.985); filter: brightness(0.97); }
   pointer-events: auto;
   display: flex; align-items: center; gap: 12px;
   max-width: 560px; width: 100%;
-  padding: 14px 16px; border-radius: 16px;
+  padding: 14px 18px; border-radius: 20px;
   background: var(--text); color: var(--bg);
   font-weight: 600; box-shadow: var(--shadow-lg);
   animation: toast-in 0.3s var(--ease);
@@ -573,7 +622,7 @@ body:has(.sheet-backdrop) .toast-wrap { top: calc(env(safe-area-inset-top, 0px) 
 .sheet {
   width: 100%; max-width: 640px; max-height: 92dvh; overflow-y: auto; overscroll-behavior: contain;
   background: var(--surface);
-  border-radius: 22px 22px 0 0;
+  border-radius: 28px 28px 0 0;
   padding: 0 16px calc(16px + var(--safe-b));
   box-shadow: var(--shadow-lg);
   animation: sheet-in 0.3s var(--ease);
@@ -586,7 +635,7 @@ body:has(.sheet-backdrop) .toast-wrap { top: calc(env(safe-area-inset-top, 0px) 
   touch-action: none; cursor: grab;
 }
 .sheet-handle { width: 40px; height: 5px; border-radius: 3px; background: var(--border); margin: 0 auto 12px; }
-.sheet h2 { font-size: 1.25rem; font-weight: 750; letter-spacing: -0.01em; }
+.sheet h2 { font-family: var(--display); font-size: 1.375rem; font-weight: 650; line-height: 1.25; }
 @keyframes sheet-in { from { transform: translateY(100%); } }
 @keyframes fade-in { from { opacity: 0; } }
 
@@ -600,7 +649,7 @@ body:has(.sheet-backdrop) .toast-wrap { top: calc(env(safe-area-inset-top, 0px) 
   border-radius: 50%; background: var(--surface-2); color: var(--text-2);
 }
 .empty-icon svg { width: 30px; height: 30px; }
-.empty .title { font-weight: 700; color: var(--text); font-size: 1.0625rem; }
+.empty .title { font-family: var(--display); font-weight: 650; color: var(--text); font-size: 1.1875rem; }
 
 .spinner {
   width: 28px; height: 28px; border-radius: 50%;
@@ -634,15 +683,15 @@ body:has(.sheet-backdrop) .toast-wrap { top: calc(env(safe-area-inset-top, 0px) 
 /* ---------- tabs ---------- */
 .tabs {
   display: flex; gap: 4px; padding: 4px;
-  background: var(--surface-2); border-radius: 12px;
+  background: var(--surface-2); border-radius: 999px;
 }
 .tab {
   flex: 1; min-height: 44px;
-  background: none; border: 0; border-radius: 9px;
+  background: none; border: 0; border-radius: 999px;
   font-weight: 700; font-size: 0.9375rem; color: var(--text-2);
   transition: background-color 0.2s, color 0.2s, box-shadow 0.2s;
 }
-.tab[aria-selected="true"] { background: var(--surface); color: var(--text); box-shadow: var(--shadow); }
+.tab[aria-selected="true"] { background: var(--surface); color: var(--primary); box-shadow: var(--shadow); }
 
 /* ---------- salon: service picker ---------- */
 /* Categories that open to show their services (one open at a time). */

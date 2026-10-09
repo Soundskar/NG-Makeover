@@ -3,6 +3,7 @@ import { useState, type FormEvent } from 'react';
 import { ErrorBox, Field } from '../components/ui';
 import { useI18n } from '../i18n/i18n';
 import { useAuth } from './auth';
+import { ArchMark } from '../components/ArchMark';
 import { devMode, setDevPaused } from './devMode';
 
 function LanguageSwitch() {
@@ -41,11 +42,11 @@ export function LoginPage() {
 
   return (
     <div className="shell no-nav">
-      <main className="page stack-lg" style={{ paddingTop: 48 }}>
+      <main className="page stack-lg" style={{ paddingTop: 28 }}>
         <LanguageSwitch />
         <div className="center stack" style={{ gap: 4 }}>
-          <img className="brand-mark" src="/favicon.svg" alt="" width={72} height={72} />
-          <h1 style={{ fontSize: '1.75rem', fontWeight: 800 }}>{t('login_title')}</h1>
+          <ArchMark width={104} monogram className="brand-mark" />
+          <h1 className="greeting">{t('login_title')}</h1>
           <p className="muted">{t('login_sub')}</p>
         </div>
         <form className="card stack" onSubmit={submit}>

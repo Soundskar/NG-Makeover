@@ -2,7 +2,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { CalendarOff, CheckCheck, ChevronLeft, ChevronRight, UserPlus } from 'lucide-react';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Empty, ErrorBox, Loaded, Page, SearchInput, Sheet, TopBar } from '../../components/ui';
+import { useMe } from '../../auth/auth';
+import { Empty, ErrorBox, Greeting, Loaded, Page, SearchInput, Sheet, TopBar } from '../../components/ui';
 import { useI18n } from '../../i18n/i18n';
 import { addDays, formatDate, formatTime, formatWeekday, todayIST, weekdayOf } from '../../lib/dates';
 import { haptic } from '../../lib/haptics';
@@ -14,6 +15,7 @@ import { useActiveEnrollments, useCourses, useSettings } from '../students/data'
 
 /** Trainers and owner: who is expected today, and marking attendance. */
 export default function ClassesPage() {
+  const me = useMe();
   const { t, lang } = useI18n();
   const qc = useQueryClient();
   const today = todayIST();
@@ -60,6 +62,8 @@ export default function ClassesPage() {
     <>
       <TopBar title={day === today ? t('classes_title') : t('nav_classes')} />
       <Page>
+        {/* Trainers start their day here. */}
+        {!me.is_owner && day === today && <Greeting name={me.display_name} />}
         <div className="row-between">
           <button className="icon-btn" aria-label={t('prev_day')} onClick={() => setDay(addDays(day, -1))}><ChevronLeft /></button>
           <div className="center">

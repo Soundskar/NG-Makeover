@@ -124,3 +124,8 @@ export function formatMonth(iso: ISODate, lang: Lang = 'en'): string {
 export function monthEnd(iso: ISODate): ISODate {
   return addDays(addMonths(monthStart(iso), 1), -1);
 }
+
+/** Hour of the day in India (0–23), for greetings. */
+export function hourIST(now: Date = new Date()): number {
+  return Number(new Intl.DateTimeFormat('en-GB', { timeZone: IST, hour: '2-digit', hourCycle: 'h23' }).format(now));
+}

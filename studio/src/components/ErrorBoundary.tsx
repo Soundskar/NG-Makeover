@@ -1,6 +1,7 @@
 import { RotateCw } from 'lucide-react';
 import { Component, type ReactNode } from 'react';
 import { useI18n } from '../i18n/i18n';
+import { ArchMark } from './ArchMark';
 
 const RELOADED = 'ngstudio-reloaded-at';
 
@@ -29,7 +30,7 @@ function CrashScreen() {
   const { t } = useI18n();
   return (
     <main className="page stack-lg center" style={{ paddingTop: 96 }}>
-      <img src="/favicon.svg" alt="" width={64} height={64} style={{ margin: '0 auto', borderRadius: 16 }} />
+      <ArchMark width={64} className="brand-mark" />
       <div className="stack" style={{ gap: 4 }}>
         <h1 style={{ fontSize: '1.375rem', fontWeight: 800 }}>{t('crash_title')}</h1>
         <p className="muted">{t('crash_sub')}</p>
@@ -63,7 +64,7 @@ export class ErrorBoundary extends Component<{ children: ReactNode }, { failed: 
 export function Splash() {
   return (
     <div className="splash" role="status" aria-label="NG Studio">
-      <img src="/favicon.svg" alt="" width={72} height={72} />
+      <ArchMark width={84} />
       <div className="splash-bar"><span /></div>
     </div>
   );

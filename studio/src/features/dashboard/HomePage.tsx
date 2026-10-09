@@ -5,9 +5,9 @@ import {
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { useMe } from '../../auth/auth';
-import { Count, Money, Page } from '../../components/ui';
+import { Count, Greeting, Money, Page } from '../../components/ui';
 import { useI18n } from '../../i18n/i18n';
-import { addDays, daysBetween, formatDate, formatWeekday, monthStart, todayIST, weekdayOf } from '../../lib/dates';
+import { addDays, daysBetween, monthStart, todayIST, weekdayOf } from '../../lib/dates';
 import { formatINR, sum } from '../../lib/money';
 import { isScheduledOn } from '../../lib/schedule';
 import { must, supabase } from '../../lib/supabase';
@@ -17,7 +17,7 @@ import { useActiveEnrollments, useFeeStatus, useSettings } from '../students/dat
 
 export default function HomePage() {
   const me = useMe();
-  const { t, lang } = useI18n();
+  const { t } = useI18n();
   const today = todayIST();
   const yesterday = addDays(today, -1);
 
@@ -95,12 +95,7 @@ export default function HomePage() {
 
   return (
     <Page>
-      <header className="stack" style={{ gap: 0, paddingTop: 8 }}>
-        <h1 style={{ fontSize: '1.625rem', fontWeight: 800, letterSpacing: '-0.01em' }}>
-          {t('greeting', { name: me.display_name.split(' ')[0] ?? '' })}
-        </h1>
-        <p className="muted">{formatWeekday(today, lang)}, {formatDate(today, lang)}</p>
-      </header>
+      <Greeting name={me.display_name} />
 
       {alerts.length > 0 && (
         <section className="stack stagger" aria-label={t('home_attention')}>
@@ -172,8 +167,8 @@ export default function HomePage() {
       </Link>
 
       <div className="stat-grid">
-        <Link to="/students/new" className="btn btn-soft btn-lg" style={{ whiteSpace: 'normal' }}><UserPlus /> {t('adm_title')}</Link>
-        <Link to="/salon/new" className="btn btn-soft btn-lg" style={{ whiteSpace: 'normal' }}><Plus /> {t('nav_new_entry')}</Link>
+        <Link to="/students/new" className="btn btn-soft quick"><UserPlus /> {t('adm_title')}</Link>
+        <Link to="/salon/new" className="btn btn-soft quick"><Plus /> {t('nav_new_entry')}</Link>
       </div>
 
       {(fees.error || visits.error) && (

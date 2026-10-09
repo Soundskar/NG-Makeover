@@ -6,6 +6,7 @@ import {
 } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { errorText, useI18n } from '../i18n/i18n';
+import { formatDate, formatWeekday, hourIST, todayIST } from '../lib/dates';
 import { haptic } from '../lib/haptics';
 import { formatINR } from '../lib/money';
 
@@ -41,6 +42,20 @@ export function TopBar({ title, back, actions }: { title: string; back?: boolean
       )}
       <h1>{title}</h1>
       {actions}
+    </header>
+  );
+}
+
+/** "Good morning, Namita" and today's date: the first thing each person sees. */
+export function Greeting({ name }: { name: string }) {
+  const { t, lang } = useI18n();
+  const h = hourIST();
+  const key = h < 12 ? 'greet_morning' : h < 17 ? 'greet_afternoon' : 'greet_evening';
+  const today = todayIST();
+  return (
+    <header className="stack" style={{ gap: 0, paddingTop: 4 }}>
+      <h1 className="greeting">{t(key, { name: name.trim().split(/\s+/)[0] ?? name })}</h1>
+      <p className="greeting-sub">{formatWeekday(today, lang)}, {formatDate(today, lang)}</p>
     </header>
   );
 }

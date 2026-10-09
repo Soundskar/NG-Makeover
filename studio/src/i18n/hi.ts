@@ -61,8 +61,8 @@ export const hi: Record<TKey, string> = {
   err_username_taken: 'यह यूज़रनेम पहले से लिया हुआ है।',
 
   // login
-  login_title: 'स्वागत है',
-  login_sub: 'NG Studio में लॉग इन करें',
+  login_title: 'नमस्ते!',
+  login_sub: 'नमिता गर्ग मेकओवर में आपका स्वागत है',
   username: 'यूज़रनेम',
   login_user: 'यूज़रनेम या ईमेल',
   pin: 'पिन',
@@ -145,7 +145,6 @@ export const hi: Record<TKey, string> = {
   close_saved: 'दिन बंद हो गया',
 
   // home
-  greeting: 'नमस्ते, {name}',
   home_attention: 'ध्यान दें',
   home_salon_today: 'आज सैलून',
   home_overdue: 'बकाया फीस',
@@ -543,4 +542,7 @@ export const hi: Record<TKey, string> = {
   history_udhaar_collections: 'उधार',
   history_t_udhaar_collections: 'उधार वसूली',
   closing_stale: 'दिन बंद होने के बाद एंट्री बदली हैं। कैश फिर से गिनें।',
+  greet_morning: 'सुप्रभात, {name}',
+  greet_afternoon: 'नमस्ते, {name}',
+  greet_evening: 'शुभ संध्या, {name}',
 };

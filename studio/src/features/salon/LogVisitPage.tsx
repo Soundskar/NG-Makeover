@@ -6,7 +6,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useMe, useTeam } from '../../auth/auth';
 import {
-  Choices, Empty, ErrorBox, Field, Loaded, Money, MoneyInput, Page, PhoneInput, SearchInput, Sheet, TopBar, useToast,
+  Choices, Empty, ErrorBox, Field, Greeting, Loaded, Money, MoneyInput, Page, PhoneInput, SearchInput, Sheet, TopBar, useToast,
 } from '../../components/ui';
 import { errorText, useI18n } from '../../i18n/i18n';
 import { formatDate, todayIST } from '../../lib/dates';
@@ -236,6 +236,8 @@ export default function LogVisitPage() {
       <>
         <TopBar title={t('log_title')} back={lines.length > 0 ? undefined : me.is_owner ? '/salon' : undefined} />
         <Page>
+          {/* Staff start their day here, so this is where they're greeted. */}
+          {!me.is_owner && lines.length === 0 && date === today && <Greeting name={me.display_name} />}
           {dateBanner}
           <SearchInput value={search} onChange={setSearch} placeholder={t('log_search')} />
           <Loaded q={catalog}>

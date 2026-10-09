@@ -59,8 +59,8 @@ export const en = {
   err_username_taken: 'That username is already taken.',
 
   // login
-  login_title: 'Welcome',
-  login_sub: 'Log in to NG Studio',
+  login_title: 'Namaste!',
+  login_sub: 'Welcome to Namita Garg Makeover',
   username: 'Username',
   login_user: 'Username or email',
   pin: 'PIN',
@@ -143,7 +143,6 @@ export const en = {
   close_saved: 'Day closed',
 
   // home
-  greeting: 'Namaste, {name}',
   home_attention: 'Needs attention',
   home_salon_today: 'Salon today',
   home_overdue: 'Fees overdue',
@@ -541,6 +540,9 @@ export const en = {
   history_udhaar_collections: 'Udhaar',
   history_t_udhaar_collections: 'Udhaar collected',
   closing_stale: 'Entries changed after the day was closed. Count the cash again.',
+  greet_morning: 'Good morning, {name}',
+  greet_afternoon: 'Good afternoon, {name}',
+  greet_evening: 'Good evening, {name}',
 } as const;
 
 export type TKey = keyof typeof en;
