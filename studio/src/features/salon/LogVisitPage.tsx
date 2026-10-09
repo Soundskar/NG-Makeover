@@ -2,7 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   AlertCircle, Banknote, CalendarCheck, Check, ChevronDown, CreditCard, HandCoins, Pencil, Plus, Smartphone, Split, StickyNote, Tag, X,
 } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useMe, useTeam } from '../../auth/auth';
 import {
@@ -13,8 +13,9 @@ import { formatDate, todayIST } from '../../lib/dates';
 import { haptic } from '../../lib/haptics';
 import { discountFrom, formatINR, payParts, sum, type PayParts } from '../../lib/money';
 import { must, supabase } from '../../lib/supabase';
-import { nameOf, type Service, type ServiceCategory } from '../../lib/types';
+import { nameOf, type Service } from '../../lib/types';
 import { normalizePhone } from '../../lib/whatsapp';
+import { iconFor, ServiceIcon, type ServiceIconName } from '../../components/ServiceIcon';
 import { advancePaid, useBooking } from '../bookings/data';
 import { useClientCard } from '../clients/data';
 import { ReviewSheet, shouldAskReview } from '../clients/ReviewSheet';
@@ -69,13 +70,6 @@ function loadDraft(key: string): Partial<Draft> | null {
   } catch {
     return null;
   }
-}
-
-/** Lowest and highest price in a list of services, for the category headers. */
-function priceSpan(services: Service[]): [number, number] {
-  const lows = services.map((s) => s.price_min ?? s.price);
-  const highs = services.map((s) => s.price_max ?? s.price);
-  return [Math.min(...lows), Math.max(...highs)];
 }
 
 export default function LogVisitPage() {
@@ -297,51 +291,41 @@ export default function LogVisitPage() {
                 const hits = services.filter((s) =>
                   s.name_en.toLowerCase().includes(q) || (s.name_hi ?? '').includes(search.trim()));
                 return hits.length
-                  ? <div className="list">{hits.map((s) => (
-                    <ServiceRow key={s.id} s={s} count={countOf(s.id)} onTap={tapService}
-                      category={categories.find((c) => c.id === s.category_id)} />
-                  ))}</div>
+                  ? <ServiceGrid items={hits} countOf={countOf} onTap={tapService} />
                   : <Empty title={t('log_no_match')} />;
               }
               const freq = (frequent.data ?? []).map((id) => services.find((s) => s.id === id)).filter(Boolean) as Service[];
+              // The bar along the top: most-used first, then each category of the menu.
+              const groups: { id: string; label: string; icon: ServiceIconName; items: Service[] }[] = [
+                ...(freq.length ? [{ id: 'freq', label: t('log_frequent'), icon: 'star' as const, items: freq }] : []),
+                ...categories
+                  .map((c) => ({ id: c.id, label: nameOf(c, lang), icon: iconFor(c.name_en), items: services.filter((s) => s.category_id === c.id) }))
+                  .filter((g) => g.items.length > 0),
+              ];
+              const current = groups.find((g) => g.id === openCat) ?? groups[0];
               return (
                 <>
-                  {freq.length > 0 && (
+                  <div className="cat-strip" role="tablist" aria-label={t('log_categories')}>
+                    {groups.map((g) => {
+                      const picked = g.id === 'freq' ? 0 : g.items.reduce((n, s) => n + countOf(s.id), 0);
+                      return (
+                        <button key={g.id} role="tab" className="cat" aria-selected={g.id === current?.id}
+                          onClick={() => { haptic(); setOpenCat(g.id); }}>
+                          <span className="cat-icon">
+                            <ServiceIcon name={g.icon} size={26} />
+                            {picked > 0 && <span className="cat-badge num" key={picked}>{picked}</span>}
+                          </span>
+                          <span className="cat-label">{g.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {current && (
                     <section className="stack">
-                      <h2 className="section-title">{t('log_frequent')}</h2>
-                      <div className="stat-grid">
-                        {freq.map((s) => {
-                          const n = countOf(s.id);
-                          return (
-                            <button key={s.id} className={`card-link tile${n ? ' picked' : ''}`} onClick={() => tapService(s)}>
-                              <div style={{ fontWeight: 700, lineHeight: 1.3 }}>{nameOf(s, lang)}</div>
-                              <div className="muted small num" style={{ marginTop: 4 }}>{priceLabel(s, t('from'))}</div>
-                              {n > 0 && <span className="tile-check" key={n}><Check size={14} />{n > 1 ? n : ''}</span>}
-                            </button>
-                          );
-                        })}
-                      </div>
+                      <h2 className="section-title">{current.label}</h2>
+                      <ServiceGrid key={current.id} items={current.items} countOf={countOf} onTap={tapService} />
                     </section>
                   )}
-                  <section className="stack">
-                    <h2 className="section-title">{t('log_categories')}</h2>
-                    <div className="accordion">
-                      {categories.map((c) => {
-                        const items = services.filter((s) => s.category_id === c.id);
-                        if (!items.length) return null;
-                        const [lo, hi] = priceSpan(items);
-                        const picked = items.reduce((n, s) => n + countOf(s.id), 0);
-                        return (
-                          <CategoryGroup key={c.id} open={openCat === c.id}
-                            onToggle={() => setOpenCat(openCat === c.id ? null : c.id)}
-                            title={nameOf(c, lang)} picked={picked}
-                            sub={`${t('log_services_n', { n: items.length })} · ${lo === hi ? formatINR(lo) : `${formatINR(lo)}–${formatINR(hi)}`}`}>
-                            {items.map((s) => <ServiceRow key={s.id} s={s} count={countOf(s.id)} onTap={tapService} />)}
-                          </CategoryGroup>
-                        );
-                      })}
-                    </div>
-                  </section>
                 </>
               );
             }}
@@ -386,6 +370,7 @@ export default function LogVisitPage() {
           <div className="list">
             {lines.map((l) => (
               <div key={l.key} className="list-item" style={{ alignItems: 'flex-start' }}>
+                <span className="svc-icon" style={{ width: 40, height: 40, margin: 0 }}><ServiceIcon name={iconFor(l.service.name_en)} size={22} /></span>
                 <div className="grow stack" style={{ gap: 6 }}>
                   <span className="title">{nameOf(l.service, lang)}</span>
                   <button className="btn btn-soft btn-sm" style={{ alignSelf: 'flex-start' }} onClick={() => setStaffFor(l.key)}>
@@ -635,45 +620,28 @@ function ReviewPrompt({ r, onDone }: { r: { phone: string; name: string | null }
   return <ReviewSheet phone={r.phone} name={r.name} title={t('review_after_title', { name: r.name || t('client') })} onClose={onDone} />;
 }
 
-/** A category that opens to show its services, so the whole menu fits on one screen. */
-function CategoryGroup({ open, onToggle, title, sub, picked, children }: {
-  open: boolean; onToggle: () => void; title: string; sub: string; picked: number; children: ReactNode;
-}) {
-  const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    // Bring a newly opened category's services into view.
-    if (open) ref.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-  }, [open]);
-  return (
-    <div ref={ref} className={`acc${open ? ' open' : ''}`}>
-      <button className="acc-head" aria-expanded={open} onClick={() => { haptic(); onToggle(); }}>
-        <span className="grow">
-          <span className="title" style={{ display: 'block' }}>{title}</span>
-          <span className="sub num">{sub}</span>
-        </span>
-        {picked > 0 && <span className="badge badge-primary num" key={picked} style={{ animation: 'pop-in 0.3s' }}>{picked}</span>}
-        <ChevronDown className="acc-chev" />
-      </button>
-      {open && <div className="acc-body">{children}</div>}
-    </div>
-  );
-}
-
-function ServiceRow({ s, count, onTap, category }: {
-  s: Service; count: number; onTap: (s: Service) => void; category?: ServiceCategory;
+/** The services of one category (or search) as tap-to-add cards with their own icons. */
+function ServiceGrid({ items, countOf, onTap }: {
+  items: Service[]; countOf: (id: string) => number; onTap: (s: Service) => void;
 }) {
   const { t, lang } = useI18n();
   return (
-    <button className="list-item svc" onClick={() => onTap(s)}>
-      <span className="grow">
-        <span className="title" style={{ display: 'block', fontWeight: 550 }}>{nameOf(s, lang)}</span>
-        {category && <span className="sub">{nameOf(category, lang)}</span>}
-      </span>
-      <span className="end num muted">{priceLabel(s, t('from'))}</span>
-      <span className={`svc-add${count ? ' on' : ''}`} key={count} aria-label={count ? t('log_added') : undefined}>
-        {count ? <>{count > 1 ? <span className="num">{count}</span> : <Check />}</> : <Plus />}
-      </span>
-    </button>
+    <div className="svc-grid stagger">
+      {items.map((s) => {
+        const n = countOf(s.id);
+        // 'Rica wax · Full arms': the kind on a small line, the part in bold.
+        const [kind, part] = nameOf(s, lang).split(' · ');
+        return (
+          <button key={s.id} className={n ? 'svc-card picked' : 'svc-card'} aria-pressed={n > 0} onClick={() => onTap(s)}>
+            <span className="svc-icon"><ServiceIcon name={iconFor(s.name_en)} /></span>
+            {part && <span className="svc-kicker">{kind}</span>}
+            <span className="svc-name">{part ?? kind}</span>
+            <span className="svc-price num">{priceLabel(s, t('from'))}</span>
+            {n > 0 && <span className="tile-check" key={n} aria-label={t('log_added')}><Check size={14} />{n > 1 ? n : ''}</span>}
+          </button>
+        );
+      })}
+    </div>
   );
 }
 
